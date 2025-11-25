@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   (await cookies()).delete("userEmail");
-  return NextResponse.redirect(new URL("/", "http://localhost:3000"));
+  return NextResponse.redirect(new URL("/", request.url));
 }
