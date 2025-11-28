@@ -4,11 +4,14 @@
 import { writeClient } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 
 const getUserEmail = async () => {
-  const c = await cookies();
-  return c.get("userEmail")?.value || "neznan";
+  const email = (await headers()).get("x-user-email");  // ← DODAJ await !!!
+  if (!email) {
+    throw new Error("Niste prijavljeni!");
+  }
+  return email;
 };
 
 // 1. DODAJ DRES

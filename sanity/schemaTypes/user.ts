@@ -7,3 +7,4 @@ export default {
     { name: 'password', type: 'string', title: 'Password' }, // hashano
   ],
 }
+
