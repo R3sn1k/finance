@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from "uuid";
 import { headers } from "next/headers";
 
 const getUserEmail = async () => {
-  const email = (await headers()).get("x-user-email");  // ← DODAJ await !!!
+  const email = (await headers()).get("x-user-email");
   if (!email) {
-    throw new Error("Niste prijavljeni!");
+    throw new Error("Niste prijavljeni! Prosimo, prijavite se ponovno.");
   }
   return email;
 };
