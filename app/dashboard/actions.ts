@@ -4,14 +4,12 @@
 import { writeClient } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
 
 const getUserEmail = async () => {
-  const email = (await headers()).get("x-user-email");
-  if (!email) {
-    throw new Error("Niste prijavljeni! Prosimo, prijavite se ponovno.");
-  }
-  return email;
+  const cookie = (await cookies()).get("userEmail")?.value;
+  if (!cookie) throw new Error("Niste prijavljeni!");
+  return cookie;
 };
 
 // 1. DODAJ DRES
