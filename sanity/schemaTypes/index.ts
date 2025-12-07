@@ -5,7 +5,8 @@ import user from '../schemaTypes/user'
 import dres from "../schemaTypes/dres"
 import prodaja from "../schemaTypes/prodaja"
 import nakup from "../schemaTypes/nakup"
+import transakcija from "./transakcija";
 
 export const schema = {
-  types: [dres, prodaja, nakup,user,post, category, author],
+  types: [dres, prodaja, nakup,user,post, category, author, transakcija],
 }
