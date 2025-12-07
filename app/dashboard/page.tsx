@@ -1,52 +1,58 @@
-// app/dashboard/page.tsx
+// app/dashboard/page.tsx → DODAJ TOLE (pomembno!)
 import { cookies } from "next/headers";
 import { writeClient } from "@/sanity/lib/client";
 import DashboardClient from "./DashboardClient";
-import Link from "next/link";
 
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const userEmail = (await cookies()).get("userEmail")?.value ?? "neznan";
+  const userEmail = (await cookies()).get("userEmail")?.value || "neznan";
 
-  // ╔══════════════════════════════════════════════════════════╗
-  // ║    NOVI PODATKI – iz tabele "transakcija"                ║
-  // ╚══════════════════════════════════════════════════════════╝
+  const user = await writeClient.fetch(
+    `*[_type == "user" && email == $email][0]{
+      _id,
+      username,
+      "profileImage": profileImage.asset->url
+    }`,
+    { email: userEmail }
+  );
 
-  const finance = await writeClient.fetch(
-    `*[_type == "transakcija" && userEmail == $userEmail] {
-      tip,
-      znesek
+  const transakcije = await writeClient.fetch(
+    `*[_type == "transakcija" && userEmail == $userEmail] | order(datum desc) {
+      _id, datum, tip, znesek, opis
     }`,
     { userEmail }
   );
 
-  const prihodki = finance
-    .filter((t: any) => t.tip === "prihodek")
-    .reduce((sum: number, t: any) => sum + t.znesek, 0);
+  // MESEČNI PODATKI – TO JE KLJUČNO!
+  const monthlyData = transakcije.reduce((acc: any, t: any) => {
+    const month = t.datum.slice(0, 7); // "2025-04"
+    if (!acc[month]) acc[month] = { prihodki: 0, odhodki: 0, prodaje: 0 };
+    if (t.tip === "prihodek") {
+      acc[month].prihodki += t.znesek;
+      acc[month].prodaje += 1;
+    } else {
+      acc[month].odhodki += t.znesek;
+    }
+    return acc;
+  }, {});
 
-  const odhodki = finance
-    .filter((t: any) => t.tip === "odhodek")
-    .reduce((sum: number, t: any) => sum + t.znesek, 0);
-
+  const prihodki = transakcije.filter((t: any) => t.tip === "prihodek").reduce((s: number, t: any) => s + t.znesek, 0);
+  const odhodki = transakcije.filter((t: any) => t.tip === "odhodek").reduce((s: number, t: any) => s + t.znesek, 0);
   const dobiček = prihodki - odhodki;
-
-  // ╔══════════════════════════════════════════════════════════╗
-  // ║    STARI PODATKI – če jih še rabiš iz prodaj (po želji)  ║
-  // ╚══════════════════════════════════════════════════════════╝
-
-  const prodaje = await writeClient.fetch(
-    `count(*[_type == "prodaja" && userEmail == $userEmail])`,
-    { userEmail }
-  );
+  const steviloProdaj = transakcije.filter((t: any) => t.tip === "prihodek").length;
 
   return (
     <DashboardClient
       userEmail={userEmail}
+      username={user?.username || userEmail.split("@")[0]}
+      profileImage={user?.profileImage || null}
       prihodki={prihodki}
       odhodki={odhodki}
       dobiček={dobiček}
-      steviloProdaj={prodaje}
+      steviloProdaj={steviloProdaj}
+      transakcije={transakcije}
+      monthlyData={monthlyData}   // TO MORA BITI!
     />
   );
 }

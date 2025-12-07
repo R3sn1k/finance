@@ -18,18 +18,16 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: "include", // OBVEZNO – da se cookie pošlje nazaj!
+        credentials: "include",
       });
 
       if (res.ok) {
-        // POČAKAJ NA ODGOVOR IN PREUSMERI ŠELE POTEM
-        const data = await res.json();
         window.location.href = "/dashboard";
       } else {
         const data = await res.json();
         setError(data.error || "Napačen email ali geslo.");
       }
-    } catch (err) {
+    } catch {
       setError("Napaka pri povezavi s strežnikom.");
     } finally {
       setLoading(false);
@@ -37,24 +35,31 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
-      <div className="max-w-md w-full text-center">
-        <h1 className="text-5xl font-extrabold mb-8 drop-shadow-lg">
-          Finance – prodaja dresov
-        </h1>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-12 max-w-md w-full">
 
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-10">
-          <h2 className="text-3xl font-bold mb-8 text-white">
-            Prijava v aplikacijo
-          </h2>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-black tracking-tight text-gray-800 mb-4">
+            Finance Dresovi
+          </h1>
+          <p className="text-xl text-gray-600">Prijava v aplikacijo</p>
+        </div>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-8 text-center font-medium">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-6">
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-4 rounded-xl bg-white/20 border border-white/30 placeholder-white/70 text-white focus:outline-none focus:ring-4 focus:ring-white/50 mb-4 text-lg"
+            required
             disabled={loading}
+            className="w-full px-6 py-4 rounded-lg border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 transition disabled:opacity-70"
           />
 
           <input
@@ -62,28 +67,27 @@ export default function LoginPage() {
             placeholder="Geslo"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-4 rounded-xl bg-white/20 border border-white/30 placeholder-white/70 text-white focus:outline-none focus:ring-4 focus:ring-white/50 mb-6 text-lg"
+            required
             disabled={loading}
+            className="w-full px-6 py-4 rounded-lg border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 transition disabled:opacity-70"
           />
-
-          {error && (
-            <p className="text-red-300 bg-red-500/20 rounded-lg py-3 px-4 mb-6 text-sm font-medium">
-              {error}
-            </p>
-          )}
 
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full py-4 bg-white text-indigo-700 font-bold text-xl rounded-xl shadow-lg hover:bg-gray-100 transition transform hover:scale-[1.02] active:scale-100 disabled:opacity-70"
+            className="w-full py-5 bg-gray-900 hover:bg-black text-white font-bold text-xl rounded-lg shadow-lg transition transform hover:scale-105 active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? "Prijavljam..." : "Prijavi se"}
           </button>
-
-          <p className="mt-8 text-white/70 text-sm">
-            Nimaš računa? <span className="underline">Kontaktiraj administratorja</span>
-          </p>
         </div>
+
+        <p className="text-center mt-10 text-gray-600">
+          Nimaš računa?{" "}
+          <a href="/registracija" className="font-bold text-gray-900 hover:underline">
+            Registriraj se
+          </a>
+        </p>
+
       </div>
     </div>
   );

@@ -1,150 +1,185 @@
-// app/dashboard/zaloga/page.tsx
-import { writeClient } from "@/sanity/lib/client";
+// app/dashboard/DashboardClient.tsx → KLIK NA KARTICO = POPUP Z GRAFOM!
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { Shirt, ArrowLeft, ShoppingCart, Trash2 } from "lucide-react";
-import { prodajDres } from "../actions";
-import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { DollarSign, LogOut, Plus, X } from "lucide-react";
 
-export const revalidate = 0;
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// Brisanje dresa + vseh njegovih prodaj
-async function izbrisiDres(dresId: string) {
-  "use server";
-  const userEmail = (await cookies()).get("userEmail")?.value ?? "neznan";
+type Transakcija = {
+  _id: string;
+  datum: string;
+  tip: "prihodek" | "odhodek";
+  znesek: number;
+  opis: string;
+};
 
-  const prodaje = await writeClient.fetch(
-    `*[_type == "prodaja" && dres._ref == $dresId && userEmail == $userEmail]._id`,
-    { dresId, userEmail }
-  );
+type Props = {
+  userEmail: string;
+  username: string;
+  profileImage: string | null;
+  prihodki: number;
+  odhodki: number;
+  dobiček: number;
+  steviloProdaj: number;
+  transakcije: Transakcija[];
+  monthlyData: Record<string, { prihodki: number; odhodki: number; prodaje: number }>;
+};
 
-  const tx = writeClient.transaction();
-  prodaje.forEach((id: string) => tx.delete(id));
-  tx.delete(dresId);
-  await tx.commit();
+export default function DashboardClient({
+  userEmail,
+  username,
+  profileImage,
+  prihodki = 0,
+  odhodki = 0,
+  dobiček = 0,
+  steviloProdaj = 0,
+  transakcije = [],
+  monthlyData = {},
+}: Props) {
+  const [openGraph, setOpenGraph] = useState<"dobiček" | "prihodki" | "odhodki" | "prodaje" | null>(null);
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/zaloga");
-}
+  // Pripravi podatke za graf (zadnjih 12 mesecev)
+  const months = Object.keys(monthlyData).sort().reverse().slice(0, 12);
 
-export default async function ZalogaPage() {
-  const userEmail = (await cookies()).get("userEmail")?.value ?? "neznan";
+  const dataDobiček = months.map(m => (monthlyData[m]?.prihodki || 0) - (monthlyData[m]?.odhodki || 0));
+  const dataPrihodki = months.map(m => monthlyData[m]?.prihodki || 0);
+  const dataOdhodki = months.map(m => monthlyData[m]?.odhodki || 0);
+  const dataProdaje = months.map(m => monthlyData[m]?.prodaje || 0);
 
-  const dresi = await writeClient.fetch(
-    `*[_type == "dres" && userEmail == $userEmail] | order(_createdAt desc) {
-      _id,
-      ime,
-      klub,
-      velikost,
-      zaloga,
-      cenaProdaje,
-      slika { asset-> { url } }
-    }`,
-    { userEmail }
-  );
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } },
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+    <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
+
       {/* Header */}
-      <header className="bg-white/10 backdrop-blur-md border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center gap-6">
-          <Link href="/dashboard" className="text-white hover:text-white/80 transition">
-            <ArrowLeft className="w-8 h-8" />
-          </Link>
-          <h1 className="text-3xl font-extrabold">Zaloga dresov</h1>
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-8 py-5 flex justify-between items-center">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-800">Finance Dresovi</h1>
+          <div className="flex items-center gap-5">
+            {profileImage ? (
+              <Image src={profileImage} alt="Profil" width={40} height={40} className="rounded-full object-cover border-2 border-gray-300" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold text-lg">
+                {username[0].toUpperCase()}
+              </div>
+            )}
+            <span className="hidden sm:block text-gray-600 font-medium">{username}</span>
+            <a href="/api/logout" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition font-semibold">
+              <LogOut className="w-5 h-5" />
+              <span className="hidden sm:inline">Odjava</span>
+            </a>
+          </div>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {dresi.map((dres: any) => (
-            <div
-              key={dres._id}
-              className="bg-white/15 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden shadow-2xl hover:scale-105 transition flex flex-col"
-            >
-              {/* Slika */}
-              {dres.slika?.asset?.url ? (
-                <div className="aspect-square relative">
-                  <Image
-                    src={dres.slika.asset.url}
-                    alt={dres.ime}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="aspect-square bg-white/20 flex items-center justify-center">
-                  <Shirt className="w-28 h-28 text-white/40" />
-                </div>
-              )}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12">
+        <h2 className="text-3xl font-bold mb-12">Živjo, <span className="text-gray-700">{username}</span>!</h2>
 
-              {/* CONTENT */}
-              <div className="p-6 flex flex-col h-full">
+        {/* 4 KARTICE – KLIK = GRAF POPUP */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <button
+            onClick={() => setOpenGraph("dobiček")}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 hover:shadow-xl transition transform hover:scale-105 text-left"
+          >
+            <p className="text-sm font-medium text-gray-500 mb-2">Dobiček</p>
+            <p className={`text-4xl font-bold ${dobiček >= 0 ? "text-green-600" : "text-red-600"}`}>
+              {(dobiček ?? 0).toFixed(2).replace(".", ",")} €
+            </p>
+          </button>
 
-                {/* Ime + klub */}
-                <div>
-                  <h3 className="text-2xl font-bold truncate">{dres.ime}</h3>
-                  <p className="text-white/80 text-sm">{dres.klub} • {dres.velikost}</p>
-                </div>
+          <button
+            onClick={() => setOpenGraph("prihodki")}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 hover:shadow-xl transition transform hover:scale-105 text-left"
+          >
+            <p className="text-sm font-medium text-gray-500 mb-2">Prihodki</p>
+            <p className="text-4xl font-bold text-green-600">
+              {(prihodki ?? 0).toFixed(2).replace(".", ",")} €
+            </p>
+          </button>
 
-                {/* Cena + zaloga */}
-                <div className="mt-4">
-                  <p className="text-3xl font-extrabold leading-tight">
-                    {dres.cenaProdaje.toFixed(2)}{" "}
-                    <span className="text-2xl align-middle">€</span>
-                  </p>
-                  <p className="text-white/60 mt-1">
-                    Zaloga:{" "}
-                    <span className={dres.zaloga > 0 ? "text-emerald-300 font-bold" : "text-red-400 font-bold"}>
-                      {dres.zaloga}
-                    </span>
-                  </p>
-                </div>
+          <button
+            onClick={() => setOpenGraph("odhodki")}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 hover:shadow-xl transition transform hover:scale-105 text-left"
+          >
+            <p className="text-sm font-medium text-gray-500 mb-2">Odhodki</p>
+            <p className="text-4xl font-bold text-orange-500">
+              {(odhodki ?? 0).toFixed(2).replace(".", ",")} €
+            </p>
+          </button>
 
-                {/* SPACER — potisne gumbe dol */}
-                <div className="flex-grow"></div>
-
-                {/* Gumbi SIDE-BY-SIDE lepo centrirani */}
-                {dres.zaloga > 0 ? (
-                  <div className="flex items-center justify-between gap-3">
-
-                    {/* Prodano */}
-                    <form action={prodajDres.bind(null, dres._id, dres.ime)} className="flex-1">
-                      <button className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-5 py-3 rounded-xl font-bold transition">
-                        <ShoppingCart className="w-5 h-5" />
-                        Prodano
-                      </button>
-                    </form>
-
-                    {/* Izbriši */}
-                    <form action={izbrisiDres.bind(null, dres._id)} className="flex-1">
-                      <button className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 px-5 py-3 rounded-xl font-bold transition">
-                        <Trash2 className="w-5 h-5" />
-                        Izbriši
-                      </button>
-                    </form>
-
-                  </div>
-                ) : (
-                  <div className="bg-red-600/80 px-5 py-3 rounded-xl font-bold text-center">
-                    Razprodano
-                  </div>
-                )}
-
-              </div>
-            </div>
-          ))}
+          <button
+            onClick={() => setOpenGraph("prodaje")}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 hover:shadow-xl transition transform hover:scale-105 text-left"
+          >
+            <p className="text-sm font-medium text-gray-500 mb-2">Število prodaj</p>
+            <p className="text-4xl font-bold text-indigo-600">{steviloProdaj}</p>
+          </button>
         </div>
 
-        {/* Empty state */}
-        {dresi.length === 0 && (
-          <p className="text-center text-4xl text-white/70 mt-20">
-            Še nimaš nobenega dresa v zalogi
-          </p>
-        )}
+        {/* Tvoja tabela in ostalo – ostane kot prej */}
+        {/* (kopiraj iz tvoje stare kode) */}
       </main>
+
+      {/* POPUP Z GRAFOM – ODPRI SE OB KLIKU NA KARTICO */}
+      {openGraph && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6">
+          <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-5xl w-full relative">
+            <button
+              onClick={() => setOpenGraph(null)}
+              className="absolute top-6 right-6 text-gray-500 hover:text-gray-800 transition"
+            >
+              <X className="w-10 h-10" />
+            </button>
+
+            <h3 className="text-4xl font-black text-center mb-10">
+              {openGraph === "dobiček" && "Dobiček po mesecih"}
+              {openGraph === "prihodki" && "Prihodki po mesecih"}
+              {openGraph === "odhodki" && "Odhodki po mesecih"}
+              {openGraph === "prodaje" && "Število prodaj po mesecih"}
+            </h3>
+
+            <div className="h-96">
+              <Line
+                data={{
+                  labels: months.map(m => new Date(m + "-01").toLocaleDateString("sl-SI", { month: "short", year: "numeric" })),
+                  datasets: [{
+                    label: "",
+                    data: openGraph === "dobiček" ? dataDobiček :
+                          openGraph === "prihodki" ? dataPrihodki :
+                          openGraph === "odhodki" ? dataOdhodki : dataProdaje,
+                    borderColor: openGraph === "dobiček" ? "#10B981" :
+                                  openGraph === "prihodki" ? "#10B981" :
+                                  openGraph === "odhodki" ? "#F97316" : "#6366F1",
+                    backgroundColor: "rgba(16, 185, 129, 0.1)",
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 10,
+                  }],
+                }}
+                options={chartOptions}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
