@@ -1,53 +1,65 @@
-// app/api/update-profile/route.ts → TO JE PRAVILNA VERZIJA!
+// app/api/urejanjeprofila/route.ts
 import { NextResponse } from "next/server";
 import { writeClient } from "@/sanity/lib/client";
 import { cookies } from "next/headers";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   const userEmail = (await cookies()).get("userEmail")?.value;
   if (!userEmail) return NextResponse.json({ error: "Ni prijavljen" }, { status: 401 });
 
   const formData = await req.formData();
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string | null;
+
+  const username = formData.get("username")?.toString().trim();
+  const oldPassword = formData.get("oldPassword")?.toString();
+  const newPassword = formData.get("newPassword")?.toString();
+  const letniCiljDobickaStr = formData.get("letniCiljDobicka")?.toString();
   const image = formData.get("image") as File | null;
 
   try {
-    // Najdi uporabnika
-    const user = await writeClient.fetch(`*[_type == "user" && email == $email][0]._id`, { email: userEmail });
+    const user = await writeClient.fetch(`*[_type == "user" && email == $email][0]`, { email: userEmail });
     if (!user) return NextResponse.json({ error: "Uporabnik ne obstaja" }, { status: 404 });
 
-    // Pripravi patch
-    const patch = writeClient.patch(user);
+    // Če spreminja geslo → preveri starega
+    if (newPassword) {
+      if (!oldPassword || !bcrypt.compareSync(oldPassword, user.password)) {
+        return NextResponse.json({ error: "Napačno staro geslo" }, { status: 400 });
+      }
+    }
 
-    if (username) patch.set({ username });
-    if (password) patch.set({ password });
+    const updates: any = {};
 
+    if (username && username !== user.username) updates.username = username;
+    if (newPassword) updates.password = bcrypt.hashSync(newPassword, 10);
+
+    // SHRANI LETNI CILJ DOBIČKA
+    if (letniCiljDobickaStr && !isNaN(Number(letniCiljDobickaStr))) {
+      const novCilj = Number(letniCiljDobickaStr);
+      if (novCilj !== user.letniCiljDobicka) {
+        updates.letniCiljDobicka = novCilj;
+      }
+    }
+
+    // Upload slike (če je)
     if (image && image.size > 0) {
-      const uploaded = await writeClient.assets.upload("image", image);
-      patch.set({
-        profileImage: {
-          _type: "image",
-          asset: { _type: "reference", _ref: uploaded._id },
-        },
-      });
+      const imageAsset = await writeClient.assets.upload("image", image);
+      updates.profileImage = {
+        _type: "image",
+        asset: { _type: "reference", _ref: imageAsset._id },
+      };
     }
 
-    await patch.commit();
+    // Shrani v Sanity
+    await writeClient.patch(user._id).set(updates).commit();
 
-    // Posodobi cookie z novim username-om
-    const response = NextResponse.json({ success: true });
-    if (username) {
-      response.cookies.set("username", username, {
-        httpOnly: false,
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      });
-    }
-
-    return response;
-  } catch (error) {
-    console.error("Update profile error:", error);
-    return NextResponse.json({ error: "Napaka pri shranjevanju" }, { status: 500 });
+    // Vrni posodobljene podatke
+    return NextResponse.json({
+      success: true,
+      username: username || user.username,
+      profileImage: image ? URL.createObjectURL(image) : user.profileImage?.asset?.url || null,
+    });
+  } catch (err) {
+    console.error("Napaka pri urejanju profila:", err);
+    return NextResponse.json({ error: "Napaka na strežniku" }, { status: 500 });
   }
 }

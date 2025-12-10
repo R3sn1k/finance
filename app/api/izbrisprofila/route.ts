@@ -1,21 +1,48 @@
-// app/api/delete-account/route.ts
+// app/api/izbrisi-profil/route.ts
 import { NextResponse } from "next/server";
 import { writeClient } from "@/sanity/lib/client";
 import { cookies } from "next/headers";
 
 export async function POST() {
-  const userEmail = (await cookies()).get("userEmail")?.value;
-  if (!userEmail) return NextResponse.json({ error: "Ni prijavljen" }, { status: 401 });
-
   try {
-    const user = await writeClient.fetch(`*[_type == "user" && email == $email][0]._id`, { email: userEmail });
-    if (user) await writeClient.delete(user);
+    // POPRAVEK: await cookies()!
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("finance-dresovi-session");
 
+    if (!sessionCookie) {
+      return NextResponse.json({ error: "Ni vpisan." }, { status: 401 });
+    }
+
+    let session;
+    try {
+      session = JSON.parse(sessionCookie.value);
+    } catch {
+      return NextResponse.json({ error: "Neveljavna seja." }, { status: 401 });
+    }
+
+    const userId = session.id;
+
+    // Izbriši vse transakcije
+    await writeClient.delete({
+      query: `*[_type == "transakcija" && user._ref == $userId]`,
+      params: { userId }
+    });
+
+    // Izbriši uporabnika
+    await writeClient.delete(userId);
+
+    // Pobriši cookie
     const response = NextResponse.json({ success: true });
-    response.cookies.delete("userEmail");
-    response.cookies.delete("username");
+    response.cookies.set({
+      name: "finance-dresovi-session",
+      value: "",
+      maxAge: 0,
+      path: "/",
+    });
+
     return response;
   } catch (error) {
-    return NextResponse.json({ error: "Napaka pri brisanju" }, { status: 500 });
+    console.error("Napaka pri brisanju profila:", error);
+    return NextResponse.json({ error: "Napaka na strežniku." }, { status: 500 });
   }
 }

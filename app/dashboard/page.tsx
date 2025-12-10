@@ -1,4 +1,4 @@
-// app/dashboard/page.tsx → DODAJ TOLE (pomembno!)
+// app/dashboard/page.tsx
 import { cookies } from "next/headers";
 import { writeClient } from "@/sanity/lib/client";
 import DashboardClient from "./DashboardClient";
@@ -12,7 +12,8 @@ export default async function DashboardPage() {
     `*[_type == "user" && email == $email][0]{
       _id,
       username,
-      "profileImage": profileImage.asset->url
+      "profileImage": profileImage.asset->url,
+      letniCiljDobicka
     }`,
     { email: userEmail }
   );
@@ -24,9 +25,8 @@ export default async function DashboardPage() {
     { userEmail }
   );
 
-  // MESEČNI PODATKI – TO JE KLJUČNO!
   const monthlyData = transakcije.reduce((acc: any, t: any) => {
-    const month = t.datum.slice(0, 7); // "2025-04"
+    const month = t.datum.slice(0, 7);
     if (!acc[month]) acc[month] = { prihodki: 0, odhodki: 0, prodaje: 0 };
     if (t.tip === "prihodek") {
       acc[month].prihodki += t.znesek;
@@ -37,8 +37,14 @@ export default async function DashboardPage() {
     return acc;
   }, {});
 
-  const prihodki = transakcije.filter((t: any) => t.tip === "prihodek").reduce((s: number, t: any) => s + t.znesek, 0);
-  const odhodki = transakcije.filter((t: any) => t.tip === "odhodek").reduce((s: number, t: any) => s + t.znesek, 0);
+  const prihodki = transakcije
+    .filter((t: any) => t.tip === "prihodek")
+    .reduce((s: number, t: any) => s + t.znesek, 0);
+
+  const odhodki = transakcije
+    .filter((t: any) => t.tip === "odhodek")
+    .reduce((s: number, t: any) => s + t.znesek, 0);
+
   const dobiček = prihodki - odhodki;
   const steviloProdaj = transakcije.filter((t: any) => t.tip === "prihodek").length;
 
@@ -52,7 +58,8 @@ export default async function DashboardPage() {
       dobiček={dobiček}
       steviloProdaj={steviloProdaj}
       transakcije={transakcije}
-      monthlyData={monthlyData}   // TO MORA BITI!
+      monthlyData={monthlyData}
+      letniCiljDobicka={user?.letniCiljDobicka || 25000}   // ← TUKAJ POŠLJEMO CILJ
     />
   );
 }
