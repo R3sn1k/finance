@@ -15,3 +15,5 @@ Enostavna in pregledna spletna aplikacija za spremljanje prihodkov, odhodkov, do
 - 👤 Urejanje profila (uporabniško ime, geslo, profilna slika, letni cilj)
 - 📱 **Popolnoma responsive** – odlično deluje na telefonu in tablici
 - 🔒 Middleware zaščita poti (prijavljeni ne vidijo login/registracije in obratno)
+
+**`app/api/`**](./app/api)
