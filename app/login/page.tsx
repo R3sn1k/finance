@@ -40,7 +40,7 @@ export default function LoginPage() {
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-black tracking-tight text-gray-800 mb-4">
-            Finance Dresovi
+            Finance Dresi
           </h1>
           <p className="text-xl text-gray-600">Prijava v aplikacijo</p>
         </div>
