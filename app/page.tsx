@@ -1,28 +1,40 @@
+// app/page.tsx (domača stran)
 import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
+    <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col items-center justify-center px-6 py-12">
 
-      <div className="max-w-2xl text-center">
-        <h1 className="text-5xl font-extrabold mb-6 drop-shadow-lg">
-          Finance – Prodaja Nogometnih Dresov
+      <div className="max-w-4xl w-full text-center space-y-16">
+
+        {/* NASLOV – enak kot v headerju dashboarda */}
+        <h1 className="text-5xl md:text-6xl font-black text-gray-800">
+          Finance - dresi
         </h1>
 
-        <p className="text-lg text-gray-100 mb-10 leading-relaxed">
-          Upravljaj prodajo dresov, spremljaj stroške, prihodke in profit.
-          Ta spletna aplikacija ti omogoča popoln nadzor nad financami,
-          pregled nad prodajami ter hitro analizo zaslužka.
+        {/* PODNASLOV – svetlo siva pisava, kot v dashboardu */}
+        <p className="text-xl md:text-2xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+          Popoln nadzor nad prodajo nogometnih dresov.<br />
+          Spremljaj prihodke, odhodke, dobiček in letni cilj – vse pregledno na enem mestu.
         </p>
 
-        <Link
-          href="/login"
-          className="inline-block bg-white text-indigo-700 font-semibold text-lg px-8 py-3 rounded-xl shadow-lg hover:bg-gray-100 transition"
-        >
-          Nadaljuj → Prijava
-        </Link>
-      </div>
+        {/* GUMB – popolnoma enak kot gumbi v dashboardu (npr. "Dodaj transakcijo") */}
+        <div className="pt-6">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-3 px-10 py-4 bg-gray-900 hover:bg-black text-white font-bold text-xl rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1"
+          >
+            Prijava
+            <span className="text-2xl">→</span>
+          </Link>
+        </div>
 
+        {/* DODATNI PODNASLOV – subtilen, kot footer elementi v dashboardu */}
+        <p className="text-base text-gray-500">
+          Enostavno. Hitro. Pregledno.
+        </p>
+
+      </div>
     </div>
   );
 }

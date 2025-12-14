@@ -1,8 +1,9 @@
-// app/dashboard/DashboardClient.tsx
+// app/dashboard/DashboardClient.tsx – POPOLNA MOBILNO RESPONSIVE VERZIJA
 "use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -26,6 +27,7 @@ import {
   ArrowRight,
   Search,
   Trash2,
+  Menu,
 } from "lucide-react";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -61,13 +63,16 @@ export default function DashboardClient({
   odhodki = 0,
   dobiček = 0,
   steviloProdaj = 0,
-  transakcije = [],
+  transakcije: initialTransakcije = [],
   monthlyData = {},
   letniCiljDobicka = 25000,
 }: Props) {
+  const router = useRouter();
+
   const [openTransakcija, setOpenTransakcija] = useState(false);
   const [openGraph, setOpenGraph] = useState<"dobiček" | "prihodki" | "odhodki" | "prodaje" | null>(null);
   const [openProfileEdit, setOpenProfileEdit] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const [tip, setTip] = useState<"prihodek" | "odhodek">("prihodek");
@@ -84,6 +89,8 @@ export default function DashboardClient({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialProfileImage);
   const [ciljInput, setCiljInput] = useState(letniCiljDobicka.toString());
+
+  const [transakcije, setTransakcije] = useState<Transakcija[]>(initialTransakcije);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState<"all" | "prihodek" | "odhodek">("all");
@@ -105,6 +112,10 @@ export default function DashboardClient({
     setFmtPreostanek((letniCiljDobicka - dobiček).toFixed(0).replace(".", ","));
     setFmtIzguba(Math.abs(dobiček).toFixed(2).replace(".", ","));
   }, [dobiček, letniCiljDobicka]);
+
+  useEffect(() => {
+    setTransakcije(initialTransakcije);
+  }, [initialTransakcije]);
 
   const formatMoney = (num: number) => num.toFixed(2).replace(".", ",");
 
@@ -152,37 +163,65 @@ export default function DashboardClient({
     }],
   };
 
-  const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { maxRotation: 0, minRotation: 0 } },
+    },
+  };
 
-  // --- Funkcije ---
   async function dodajTransakcijo() {
     if (!znesek || !opis) return;
-    await fetch("/api/dodaj-transakcijo", {
+
+    const res = await fetch("/api/dodaj-transakcijo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tip, znesek: Number(znesek), opis }),
     });
-    setZnesek(""); setOpis(""); setOpenTransakcija(false);
-    window.location.reload();
+
+    if (res.ok) {
+      setZnesek("");
+      setOpis("");
+      setOpenTransakcija(false);
+      router.refresh();
+    } else {
+      alert("Napaka pri dodajanju transakcije");
+    }
   }
 
   async function izbrisiTransakcijo(id: string) {
     if (!confirm("Res želiš izbrisati to transakcijo?")) return;
-    const res = await fetch("/api/izbrisi-transakcijo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transakcijaId: id }),
-    });
-    if (res.ok) window.location.reload();
-    else alert("Napaka pri brisanju transakcije.");
+
+    try {
+      const res = await fetch("/api/izbrisi-transakcijo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transakcijaId: id }),
+      });
+
+      if (res.ok) {
+        setTransakcije(prev => prev.filter(t => t._id !== id));
+        router.refresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Napaka pri brisanju transakcije.");
+      }
+    } catch {
+      alert("Napaka pri povezavi.");
+    }
   }
 
   async function izbrisiProfil() {
     if (!confirm("RES ŽELIŠ ZA VEDNO IZBRISATI CELOTEN RAČUN IN VSE TRANSAKCIJE?\nTo je NEPOVRATNO!")) return;
-    if (!confirm("ZADNJA PRILOŽNOST – res želiš izbrisati račun?")) return;
-    const res = await fetch("/api/izbrisi-profil", { method: "POST" });
-    if (res.ok) window.location.href = "/login";
-    else alert("Napaka pri brisanju profila.");
+
+    const res = await fetch("/api/izbrisiprofila", { method: "POST" });
+    if (res.ok) {
+      window.location.href = "/login";
+    } else {
+      alert("Napaka pri brisanju profila.");
+    }
   }
 
   async function shraniProfil() {
@@ -201,7 +240,7 @@ export default function DashboardClient({
       setUsername(data.username || editUsername);
       setProfileImage(data.profileImage || profileImage);
       setOpenProfileEdit(false);
-      window.location.reload();
+      router.refresh();
     } else {
       alert("Napaka pri shranjevanju profila");
     }
@@ -217,7 +256,6 @@ export default function DashboardClient({
     }
   };
 
-  // Filtriranje
   const filteredTransactions = transakcije
     .filter((t) => {
       const transactionDate = new Date(t.datum);
@@ -251,53 +289,85 @@ export default function DashboardClient({
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
-      {/* HEADER */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-8 py-5 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Finance Dresovi</h1>
-          <div className="flex items-center gap-5">
+      {/* HEADER – MOBILNI MENU */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Finance - dresi</h1>
+
+          {/* Desktop header */}
+          <div className="hidden md:flex items-center gap-4">
             {profileImage ? (
-              <Image src={profileImage} alt="Profil" width={48} height={48} className="rounded-full border-2 border-gray-300" />
+              <Image src={profileImage} alt="Profil" width={40} height={40} className="rounded-full border-2 border-gray-300" />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-400 flex items-center justify-center text-white text-xl font-bold">
+              <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center text-white text-lg font-bold">
                 {username[0]?.toUpperCase() || "?"}
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <span className="text-gray-700 font-medium">{username}</span>
-              <button
-                onClick={() => {
-                  setEditUsername(username);
-                  setOldPassword(""); setNewPassword(""); setConfirmPassword("");
-                  setImageFile(null); setImagePreview(profileImage);
-                  setCiljInput(letniCiljDobicka.toString());
-                  setOpenProfileEdit(true);
-                }}
-                className="text-gray-500 hover:text-gray-900"
-              >
-                <Edit2 className="w-5 h-5" />
-              </button>
-            </div>
+            <span className="text-gray-700 font-medium">{username}</span>
+            <button
+              onClick={() => setOpenProfileEdit(true)}
+              className="text-gray-500 hover:text-gray-900"
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
             <a href="/api/logout" className="text-gray-600 hover:text-gray-900">
               <LogOut className="w-5 h-5" />
             </a>
           </div>
+
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden text-gray-700"
+          >
+            <Menu className="w-7 h-7" />
+          </button>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200 py-4 px-6">
+            <div className="flex flex-col items-center gap-4">
+              {profileImage ? (
+                <Image src={profileImage} alt="Profil" width={64} height={64} className="rounded-full border-2 border-gray-300" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-400 flex items-center justify-center text-white text-2xl font-bold">
+                  {username[0]?.toUpperCase() || "?"}
+                </div>
+              )}
+              <span className="text-lg font-medium text-gray-800">{username}</span>
+              <div className="flex gap-6">
+                <button
+                  onClick={() => {
+                    setOpenProfileEdit(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  <Edit2 className="w-6 h-6" />
+                </button>
+                <a href="/api/logout" className="text-gray-600 hover:text-gray-900">
+                  <LogOut className="w-6 h-6" />
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12">
-        <h2 className="text-3xl font-bold mb-12">Živjo, {username}!</h2>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center sm:text-left">Živjo, {username}!</h2>
 
         {/* LETNI CILJ DOBIČKA */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold">Letni cilj dobička {new Date().getFullYear()}</h3>
-            <span className="text-2xl font-black text-gray-800">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            <h3 className="text-lg sm:text-xl font-bold">Letni cilj dobička {new Date().getFullYear()}</h3>
+            <span className="text-xl sm:text-2xl font-black text-gray-800">
               {fmtDobiček} € <span className="text-sm text-gray-500 font-normal">/ {fmtCilj} €</span>
             </span>
           </div>
 
-          <div className="relative h-12 bg-gray-200 rounded-full overflow-hidden">
+          <div className="relative h-12 bg-gray-200 rounded-full overflow-hidden mb-4">
             <div
               className={`absolute inset-0 h-full transition-all duration-1000 ease-out ${
                 dobiček < 0 ? "bg-gradient-to-r from-red-500 to-rose-600" :
@@ -309,107 +379,107 @@ export default function DashboardClient({
               <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-black text-white drop-shadow-md">
+              <span className="text-xl sm:text-2xl font-black text-white drop-shadow-md">
                 {dobiček < 0 ? "IZGUBA" : `${odstotekDobicka.toFixed(0)}%`}
               </span>
             </div>
           </div>
 
-          <div className="mt-4 text-center">
+          <div className="text-center">
             {dobiček < 0 ? (
-              <p className="text-lg font-bold text-red-600">V izgubi za {fmtIzguba} €</p>
+              <p className="text-base sm:text-lg font-bold text-red-600">V izgubi za {fmtIzguba} €</p>
             ) : odstotekDobicka >= 100 ? (
-              <p className="text-xl font-bold text-green-600">ČESTITKE! CILJ PRESEŽEN!</p>
+              <p className="text-lg sm:text-xl font-bold text-green-600">ČESTITKE! CILJ PRESEŽEN!</p>
             ) : (
-              <p className="text-lg text-gray-700">Še <span className="font-bold">{fmtPreostanek} €</span> do cilja</p>
+              <p className="text-base sm:text-lg text-gray-700">Še <span className="font-bold">{fmtPreostanek} €</span> do cilja</p>
             )}
           </div>
         </div>
 
-        {/* 4 KARTICE */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <button onClick={() => setOpenGraph("dobiček")} className="bg-white rounded-xl shadow p-6 hover:shadow-xl transition text-left">
-            <p className="text-sm text-gray-500 mb-2">Dobiček</p>
-            <p className={`text-4xl font-bold ${dobiček >= 0 ? "text-green-600" : "text-red-600"}`}>
+        {/* 4 KARTICE – mobilno v 2 stolpca, desktop 4 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <button onClick={() => setOpenGraph("dobiček")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">Dobiček</p>
+            <p className={`text-2xl sm:text-3xl font-bold ${dobiček >= 0 ? "text-green-600" : "text-red-600"}`}>
               {formatMoney(dobiček)} €
             </p>
           </button>
-          <button onClick={() => setOpenGraph("prihodki")} className="bg-white rounded-xl shadow p-6 hover:shadow-xl transition text-left">
-            <p className="text-sm text-gray-500 mb-2">Prihodki</p>
-            <p className="text-4xl font-bold text-green-600">{formatMoney(prihodki)} €</p>
+          <button onClick={() => setOpenGraph("prihodki")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">Prihodki</p>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatMoney(prihodki)} €</p>
           </button>
-          <button onClick={() => setOpenGraph("odhodki")} className="bg-white rounded-xl shadow p-6 hover:shadow-xl transition text-left">
-            <p className="text-sm text-gray-500 mb-2">Odhodki</p>
-            <p className="text-4xl font-bold text-orange-500">{formatMoney(odhodki)} €</p>
+          <button onClick={() => setOpenGraph("odhodki")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">Odhodki</p>
+            <p className="text-2xl sm:text-3xl font-bold text-orange-500">{formatMoney(odhodki)} €</p>
           </button>
-          <button onClick={() => setOpenGraph("prodaje")} className="bg-white rounded-xl shadow p-6 hover:shadow-xl transition text-left">
-            <p className="text-sm text-gray-500 mb-2">Število prodaj</p>
-            <p className="text-4xl font-bold text-indigo-600">{steviloProdaj}</p>
+          <button onClick={() => setOpenGraph("prodaje")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">Število prodaj</p>
+            <p className="text-2xl sm:text-3xl font-bold text-indigo-600">{steviloProdaj}</p>
           </button>
         </div>
 
         {/* TABELA TRANSAKCIJ */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-800">Zgodovina transakcij</h3>
-            <button onClick={() => setOpenTransakcija(true)} className="flex items-center gap-3 px-6 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-lg shadow transition">
-              <Plus className="w-5 h-5" /> Dodaj transakcijo
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800">Zgodovina transakcij</h3>
+            <button onClick={() => setOpenTransakcija(true)} className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-lg shadow transition text-sm sm:text-base">
+              <Plus className="w-5 h-5" /> Dodaj
             </button>
           </div>
 
-          {/* FILTRI */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {/* FILTRI – mobilno v stolpcih */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="relative">
-              <Filter className="absolute left-3 top-3.5 w-5 h-5 text-gray-500" />
-              <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="w-full pl-11 pr-3 py-3 rounded-lg border border-gray-300 text-sm">
+              <Filter className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
+              <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 text-sm">
                 <option value="all">Vsi tipi</option>
                 <option value="prihodek">Prihodki</option>
                 <option value="odhodek">Odhodki</option>
               </select>
             </div>
             <div className="relative">
-              <Calendar className="absolute left-3 top-3.5 w-5 h-5 text-gray-500" />
-              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full pl-11 pr-3 py-3 rounded-lg border border-gray-300 text-sm" />
+              <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
+              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 text-sm" />
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-3.5 w-5 h-5 text-gray-500" />
-              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-11 pr-3 py-3 rounded-lg border border-gray-300 text-sm" placeholder="Išči po opisu..." />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
+              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 text-sm" placeholder="Išči..." />
             </div>
           </div>
 
           {filteredTransactions.length === 0 ? (
-            <p className="text-center text-gray-500 py-16 text-lg">
+            <p className="text-center text-gray-500 py-12 text-base">
               {selectedDate ? `Ni transakcij za ${new Date(selectedDate).toLocaleDateString("sl-SI")}` : "Še ni transakcij"}
             </p>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
+              <div className="overflow-x-auto -mx-6 px-6">
+                <table className="w-full text-left text-sm">
                   <thead className="border-b-2 border-gray-200">
                     <tr>
-                      <th className="pb-4 text-sm font-semibold text-gray-600">Datum</th>
-                      <th className="pb-4 text-sm font-semibold text-gray-600">Tip</th>
-                      <th className="pb-4 text-sm font-semibold text-gray-600">Opis</th>
-                      <th className="pb-4 text-sm font-semibold text-gray-600 text-right">Znesek</th>
-                      <th className="pb-4 text-sm font-semibold text-gray-600"></th>
+                      <th className="pb-3 font-semibold text-gray-600">Datum</th>
+                      <th className="pb-3 font-semibold text-gray-600">Tip</th>
+                      <th className="pb-3 font-semibold text-gray-600">Opis</th>
+                      <th className="pb-3 font-semibold text-gray-600 text-right">Znesek</th>
+                      <th className="pb-3"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayedTransactions.map((t) => (
-                      <tr key={t._id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                        <td className="py-4 text-gray-700">{new Date(t.datum).toLocaleDateString("sl-SI")}</td>
-                        <td className="py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${t.tip === "prihodek" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                      <tr key={t._id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 text-gray-700 text-sm">{new Date(t.datum).toLocaleDateString("sl-SI")}</td>
+                        <td className="py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${t.tip === "prihodek" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                             {t.tip === "prihodek" ? "Prihodek" : "Odhodek"}
                           </span>
                         </td>
-                        <td className="py-4 text-gray-700">{t.opis}</td>
-                        <td className={`py-4 text-right font-semibold ${t.tip === "prihodek" ? "text-green-600" : "text-red-600"}`}>
-                          {t.tip === "prihodek" ? "+" : "-"} {formatMoney(t.znesek)} €
+                        <td className="py-3 text-gray-700 text-sm">{t.opis}</td>
+                        <td className={`py-3 text-right font-semibold text-sm ${t.tip === "prihodek" ? "text-green-600" : "text-red-600"}`}>
+                          {t.tip === "prihodek" ? "+" : "−"} {formatMoney(t.znesek)} €
                         </td>
-                        <td className="py-4 text-right">
-                          <button onClick={() => izbrisiTransakcijo(t._id)} className="text-red-600 hover:text-red-800 transition">
-                            <Trash2 className="w-5 h-5" />
+                        <td className="py-3 text-right">
+                          <button onClick={() => izbrisiTransakcijo(t._id)} className="text-red-600 hover:text-red-800">
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </td>
                       </tr>
@@ -419,7 +489,7 @@ export default function DashboardClient({
               </div>
 
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-3 mt-8">
+                <div className="flex justify-center items-center gap-3 mt-6">
                   <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
@@ -436,10 +506,15 @@ export default function DashboardClient({
 
       {/* POPUP: DODAJ TRANSAKCIJO */}
       {openTransakcija && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-lg w-full">
-            <h3 className="text-3xl font-bold mb-8 text-center">Nova transakcija</h3>
-            <div className="space-y-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold">Nova transakcija</h3>
+              <button onClick={() => setOpenTransakcija(false)} className="text-gray-500 hover:text-gray-700">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-5">
               <select value={tip} onChange={(e) => setTip(e.target.value as any)} className="w-full p-4 rounded-lg border border-gray-300">
                 <option value="prihodek">Prihodek</option>
                 <option value="odhodek">Odhodek</option>
@@ -447,11 +522,11 @@ export default function DashboardClient({
               <input type="number" step="0.01" placeholder="Znesek (€)" value={znesek} onChange={(e) => setZnesek(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300" />
               <input type="text" placeholder="Opis" value={opis} onChange={(e) => setOpis(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300" />
             </div>
-            <div className="flex justify-center gap-6 mt-10">
-              <button onClick={() => { setOpenTransakcija(false); setZnesek(""); setOpis(""); }} className="px-10 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold">
+            <div className="flex justify-center gap-4 mt-8">
+              <button onClick={() => setOpenTransakcija(false)} className="px-8 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold">
                 Prekliči
               </button>
-              <button onClick={dodajTransakcijo} className="px-12 py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-semibold">
+              <button onClick={dodajTransakcijo} className="px-10 py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-semibold">
                 Shrani
               </button>
             </div>
@@ -461,76 +536,76 @@ export default function DashboardClient({
 
       {/* POPUP: GRAF */}
       {openGraph && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-5xl w-full relative">
-            <button onClick={() => setOpenGraph(null)} className="absolute top-6 right-6 z-10 bg-white rounded-full p-2 shadow-lg hover:shadow-xl hover:bg-gray-100">
-              <X className="w-7 h-7 text-gray-700" />
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-5xl w-full relative">
+            <button onClick={() => setOpenGraph(null)} className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
+              <X className="w-6 h-6 text-gray-700" />
             </button>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 pr-16">
-              <h3 className="text-4xl font-black">
+            <div className="flex flex-col gap-4 mb-6">
+              <h3 className="text-2xl sm:text-3xl font-black text-center">
                 {openGraph === "dobiček" ? "Dobiček" : openGraph === "prihodki" ? "Prihodki" : openGraph === "odhodki" ? "Odhodki" : "Število prodaj"} po mesecih
               </h3>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="px-6 py-3 border border-gray-300 rounded-lg text-lg font-medium bg-white shadow-sm">
+              <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="mx-auto px-5 py-3 border border-gray-300 rounded-lg text-base font-medium bg-white shadow-sm">
                 {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <div className="h-96">
+            <div className="h-64 sm:h-96">
               <Line data={chartData} options={chartOptions} />
             </div>
           </div>
         </div>
       )}
 
-      {/* POPUP: UREDI PROFIL + BRISANJE RAČUNA */}
+      {/* POPUP: UREDI PROFIL */}
       {openProfileEdit && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full max-h-screen overflow-y-auto">
-            <h3 className="text-3xl font-bold mb-8 text-center">Uredi profil</h3>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold">Uredi profil</h3>
+              <button onClick={() => setOpenProfileEdit(false)} className="text-gray-500 hover:text-gray-700">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
             <div className="flex flex-col items-center mb-8">
               <div className="relative">
                 {imagePreview ? (
-                  <Image src={imagePreview} alt="Preview" width={120} height={120} className="rounded-full border-4 border-gray-300" />
+                  <Image src={imagePreview} alt="Preview" width={100} height={100} className="rounded-full border-4 border-gray-300" />
                 ) : (
-                  <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center text-4xl text-white font-bold">
+                  <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center text-3xl text-white font-bold">
                     {editUsername[0]?.toUpperCase() || "?"}
                   </div>
                 )}
                 <label className="absolute bottom-0 right-0 bg-gray-900 text-white p-3 rounded-full cursor-pointer hover:bg-black">
-                  <Camera className="w-6 h-6" />
+                  <Camera className="w-5 h-5" />
                   <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
               </div>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} placeholder="Uporabniško ime" className="w-full p-4 rounded-lg border border-gray-300" />
               <input type="password" placeholder="Staro geslo" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300" />
               <input type="password" placeholder="Novo geslo" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300" />
               <input type="password" placeholder="Potrdi novo geslo" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300" />
-              <div className="pt-6 border-t border-gray-300">
+              <div className="pt-4 border-t border-gray-300">
                 <label className="block text-sm font-medium mb-2">Letni cilj dobička (€)</label>
                 <input type="number" value={ciljInput} onChange={(e) => setCiljInput(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300 text-lg" />
               </div>
             </div>
 
-            <div className="flex justify-center gap-6 mt-10">
-              <button onClick={() => setOpenProfileEdit(false)} className="px-10 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold">
+            <div className="flex justify-center gap-4 mt-8">
+              <button onClick={() => setOpenProfileEdit(false)} className="px-8 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold">
                 Prekliči
               </button>
-              <button onClick={shraniProfil} className="px-12 py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-semibold">
-                Shrani spremembe
+              <button onClick={shraniProfil} className="px-10 py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-semibold">
+                Shrani
               </button>
             </div>
 
-            {/* NEVARNO OBMOČJE */}
-            <div className="mt-12 pt-8 border-t-2 border-red-300">
-              <p className="text-center text-red-600 font-bold mb-4">Nevarno območje</p>
-              <p className="text-center text-sm text-gray-600 mb-6">
-                Brisanje računa je <strong>nepovratno</strong>. Izgubiš vse podatke.
-              </p>
+            <div className="mt-10">
               <button onClick={izbrisiProfil} className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition shadow-lg">
-                IZBRIŠI MOJ RAČUN ZA VEDNO
+                IZBRIŠI RAČUN
               </button>
             </div>
           </div>

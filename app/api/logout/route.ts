@@ -2,17 +2,22 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function POST(request: NextRequest) {
-  const response = NextResponse.redirect(new URL("/login", request.url));
+async function handleLogout(request: NextRequest) {
+  const response = NextResponse.redirect(new URL("/", request.url)); // po logoutu gre na domačo stran
 
-  // Briše vse možne cookie-je, ki smo jih uporabljali
+  // Pobriši cookie-je
   response.cookies.delete("userEmail");
-  response.cookies.delete("sanitySession");
+  response.cookies.delete("username");
+  response.cookies.delete("sanitySession"); // če ga uporabljaš
 
   return response;
 }
 
-// Če kdo klikne samo link (GET), tudi deluje
+// Podpira tako POST kot GET (ker imaš v headerju <a href="/api/logout">)
+export async function POST(request: NextRequest) {
+  return handleLogout(request);
+}
+
 export async function GET(request: NextRequest) {
-  return POST(request);
+  return handleLogout(request);
 }

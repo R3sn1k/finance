@@ -4,45 +4,49 @@ import { writeClient } from "@/sanity/lib/client";
 import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
+  console.log("🚀 /api/izbrisi-transakcijo KLICAN!");
+
   try {
-    const { transakcijaId } = await req.json();
+    const body = await req.json();
+    const { transakcijaId } = body;
+
+    console.log("📥 Prejet transakcijaId:", transakcijaId);
 
     if (!transakcijaId) {
-      return NextResponse.json({ error: "Manjka ID." }, { status: 400 });
+      return NextResponse.json({ error: "Manjka ID transakcije" }, { status: 400 });
     }
 
+    // Preveri prijavo (userEmail cookie)
     const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("finance-dresovi-session");
+    const userEmail = cookieStore.get("userEmail")?.value;
 
-    if (!sessionCookie) {
-      return NextResponse.json({ error: "Ni vpisan." }, { status: 401 });
+    console.log("🍪 userEmail iz cookie:", userEmail || "NI PRIJAVE");
+
+    if (!userEmail) {
+      return NextResponse.json({ error: "Ni prijavljen" }, { status: 401 });
     }
 
-    let session;
-    try {
-      session = JSON.parse(sessionCookie.value);
-    } catch {
-      return NextResponse.json({ error: "Neveljavna seja." }, { status: 401 });
-    }
-
-    const userId = session.id;
-
-    // Preveri, da transakcija pripada uporabniku
-    const exists = await writeClient.fetch(
-      `*[_type == "transakcija" && _id == $id && user._ref == $userId][0]._id`,
-      { id: transakcijaId, userId }
+    // Preveri, če transakcija pripada temu uporabniku (varnost!)
+    const transakcija = await writeClient.fetch(
+      `*[_type == "transakcija" && _id == $id && userEmail == $email][0]`,
+      { id: transakcijaId, email: userEmail }
     );
 
-    if (!exists) {
-      return NextResponse.json({ error: "Transakcija ne obstaja ali nimaš pravic." }, { status: 403 });
+    if (!transakcija) {
+      console.log("❌ Transakcija ne obstaja ali ne pripada uporabniku");
+      return NextResponse.json({ error: "Transakcija ne obstaja" }, { status: 404 });
     }
 
-    // IZBRIŠI
+    // Izbriši transakcijo
+    console.log("🗑️ Brišem transakcijo z ID:", transakcijaId);
     await writeClient.delete(transakcijaId);
 
+    console.log("✅ Transakcija uspešno izbrisana");
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Brisanje transakcije napaka:", error);
-    return NextResponse.json({ error: "Napaka na strežniku." }, { status: 500 });
+
+  } catch (error: any) {
+    console.error("💥 Napaka pri brisanju transakcije:", error);
+    console.error("💥 Message:", error.message);
+    return NextResponse.json({ error: "Napaka na strežniku" }, { status: 500 });
   }
 }

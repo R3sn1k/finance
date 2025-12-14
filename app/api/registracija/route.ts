@@ -1,9 +1,7 @@
 // app/api/register/route.ts
 import { NextResponse } from "next/server";
 import { writeClient } from "@/sanity/lib/client";
-import bcrypt from "bcryptjs";
-
-const SALT_ROUNDS = 12; // Višje = varneje, 12 je standard
+// bcrypt ni več potreben → odstranjen import
 
 export async function POST(req: Request) {
   try {
@@ -37,20 +35,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // HAŠIRAJ GESLO
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-    // Shrani uporabnika z haširanim geslom
+    // Shrani uporabnika z navadnim geslom (BREZ hashinga)
     await writeClient.create({
       _type: "user",
-      username,
-      email,
-      password: hashedPassword, // ← haširano!
+      username: username.trim(),
+      email: email.trim(),
+      password: password.trim(), // ← plain text geslo
+      // Če imaš letni cilj z initialValue v schemi, ga ni treba podajat tukaj
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registracija napaka:", error);
+    console.error("Error message:", error.message);
     return NextResponse.json(
       { error: "Napaka na strežniku." },
       { status: 500 }
