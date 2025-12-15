@@ -20,6 +20,19 @@ Enostavna in pregledna spletna aplikacija za spremljanje prihodkov, odhodkov, do
 
 ---
 
+## 🛠️ Tehnologije in jeziki
+
+- **Frontend & Backend:** Next.js 13 (React, App Router)  
+- **Jeziki:**  
+  - JavaScript / TypeScript  
+  - HTML  
+  - CSS (TailwindCSS)   
+- **Baza podatkov:** Sanity 
+- **Grafi:** Chart.js  
+- **Avtentikacija:** Lastna implementacija middleware zaščite  
+
+---
+
 ## 🌐 Preizkusi aplikacijo
 
-Aplikacijo si lahko ogledaš in preizkusiš na svoji domeni: [finance.jakobresnik.eu](https://finance.jakobresnik.eu)  
+Aplikacijo si lahko ogledaš in preizkusiš na domeni: [finance.jakobresnik.eu](https://finance.jakobresnik.eu)  
