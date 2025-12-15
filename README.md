@@ -35,4 +35,4 @@ Enostavna in pregledna spletna aplikacija za spremljanje prihodkov, odhodkov, do
 
 ## 🌐 Preizkusi aplikacijo
 
-Aplikacijo si lahko ogledaš in preizkusiš na domeni: [finance.jakobresnik.eu](https://finance.jakobresnik.eu)  
+Aplikacijo si lahko ogledaš in preizkusiš na domeni:  <a href="https://finance.jakobresnik.eu" target="_blank">finance.jakobresnik.eu</a>
