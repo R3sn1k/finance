@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import type { DashboardProps, Transakcija, MonthlyData, GraphType, FilterType } from "@/types/dashboard";
 import { formatMoney, formatIntSl } from "@/lib/format";
+import { dayStamp, monthLabelSl } from "@/lib/date";
 
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -111,9 +112,7 @@ export default function DashboardClient({
     return `${selectedYear}-${month}`;
   });
 
-  const monthLabels = allMonths.map((m) =>
-    new Date(m + "-01").toLocaleDateString("sl-SI", { month: "short" })
-  );
+  const monthLabels = allMonths.map(monthLabelSl);
 
   const getDataForYear = (type: "dobiček" | "prihodki" | "odhodki" | "prodaje") => {
     return allMonths.map((key) => {
@@ -234,22 +233,18 @@ export default function DashboardClient({
   };
 
   const filteredTransactions = transakcije
-    .filter((t) => {
-      const transactionDate = new Date(t.datum);
-      const transactionDay = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
+  .filter((t) => {
+    const matchesType = filterType === "all" || t.tip === filterType;
+    const matchesSearch = !searchTerm || t.opis.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesType || !matchesSearch) return false;
 
-      const matchesType = filterType === "all" || t.tip === filterType;
-      const matchesSearch = !searchTerm || t.opis.toLowerCase().includes(searchTerm.toLowerCase());
-
-      if (selectedDate) {
-        const selected = new Date(selectedDate);
-        const selectedDay = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
-        return matchesType && matchesSearch && transactionDay.getTime() === selectedDay.getTime();
-      }
-      return matchesType && matchesSearch;
-    })
-    .sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime());
-
+    if (selectedDate) {
+      return dayStamp(new Date(t.datum)) === dayStamp(new Date(selectedDate));
+    }
+    return true;
+  })
+  .sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime());
+  
   const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
   const displayedTransactions = filteredTransactions.slice(
     (currentPage - 1) * transactionsPerPage,
