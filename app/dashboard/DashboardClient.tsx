@@ -30,6 +30,7 @@ import {
   Menu,
 } from "lucide-react";
 import type { DashboardProps, Transakcija, MonthlyData, GraphType, FilterType } from "@/types/dashboard";
+import { formatMoney, formatIntSl } from "@/lib/format";
 
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -86,7 +87,7 @@ export default function DashboardClient({
 
   useEffect(() => {
     setFmtDobiček(dobiček.toFixed(2).replace(".", ","));
-    setFmtCilj(letniCiljDobicka.toLocaleString("sl-SI"));
+    setFmtCilj(formatIntSl(letniCiljDobicka));
     setFmtPreostanek((letniCiljDobicka - dobiček).toFixed(0).replace(".", ","));
     setFmtIzguba(Math.abs(dobiček).toFixed(2).replace(".", ","));
   }, [dobiček, letniCiljDobicka]);
@@ -94,8 +95,6 @@ export default function DashboardClient({
   useEffect(() => {
     setTransakcije(initialTransakcije);
   }, [initialTransakcije]);
-
-  const formatMoney = (num: number) => num.toFixed(2).replace(".", ",");
 
   const availableYears = Array.from(
     new Set(Object.keys(monthlyData).map((key) => parseInt(key.split("-")[0], 10)))
