@@ -29,34 +29,12 @@ import {
   Trash2,
   Menu,
 } from "lucide-react";
+import type { DashboardProps, Transakcija, MonthlyData, GraphType, FilterType } from "@/types/dashboard";
+
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-type Transakcija = {
-  _id: string;
-  datum: string;
-  tip: "prihodek" | "odhodek";
-  znesek: number;
-  opis: string;
-};
-
-type MonthlyData = Record<string, { prihodki: number; odhodki: number; prodaje: number }>;
-
-type Props = {
-  userEmail: string;
-  username: string;
-  profileImage: string | null;
-  prihodki: number;
-  odhodki: number;
-  dobiček: number;
-  steviloProdaj: number;
-  transakcije: Transakcija[];
-  monthlyData: MonthlyData;
-  letniCiljDobicka: number;
-};
-
 export default function DashboardClient({
-  userEmail,
   username: initialUsername,
   profileImage: initialProfileImage,
   prihodki = 0,
@@ -66,11 +44,11 @@ export default function DashboardClient({
   transakcije: initialTransakcije = [],
   monthlyData = {},
   letniCiljDobicka = 25000,
-}: Props) {
+}: DashboardProps) {
   const router = useRouter();
 
   const [openTransakcija, setOpenTransakcija] = useState(false);
-  const [openGraph, setOpenGraph] = useState<"dobiček" | "prihodki" | "odhodki" | "prodaje" | null>(null);
+  const [openGraph, setOpenGraph] = useState<GraphType | null>(null);
   const [openProfileEdit, setOpenProfileEdit] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -93,7 +71,7 @@ export default function DashboardClient({
   const [transakcije, setTransakcije] = useState<Transakcija[]>(initialTransakcije);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [filterType, setFilterType] = useState<"all" | "prihodek" | "odhodek">("all");
+  const [filterType, setFilterType] = useState<FilterType>("all");
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
