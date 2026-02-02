@@ -10,14 +10,23 @@ export default function DodajTransakcijo() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/dodaj-transakcijo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tip, znesek: Number(znesek), opis }),
-    });
-    setZnesek("");
-    setOpis("");
-    window.location.reload();
+    try {
+      const res = await fetch("/api/dodaj-transakcijo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tip, znesek: Number(znesek), opis }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Napaka pri dodajanju transakcije");
+        return;
+      }
+      setZnesek("");
+      setOpis("");
+      window.location.reload();
+    } catch {
+      alert("Napaka pri povezavi.");
+    }
   }
 
   return (

@@ -6,16 +6,19 @@ import { writeClient } from "@/sanity/lib/client";
 export async function POST(req: Request) {
   try {
     const { username, email, password } = await req.json();
+    const normalizedUsername = username?.toString().trim();
+    const normalizedEmail = email?.toString().trim();
+    const normalizedPassword = password?.toString();
 
     // Validacija na strežniku
-    if (!username || !email || !password) {
+    if (!normalizedUsername || !normalizedEmail || !normalizedPassword) {
       return NextResponse.json(
         { error: "Manjkajo obvezni podatki." },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
+    if (normalizedPassword.length < 6) {
       return NextResponse.json(
         { error: "Geslo mora imeti vsaj 6 znakov." },
         { status: 400 }
@@ -25,7 +28,7 @@ export async function POST(req: Request) {
     // Preveri, če uporabnik že obstaja
     const existing = await writeClient.fetch(
       `*[_type == "user" && (email == $email || username == $username)][0]`,
-      { email, username }
+      { email: normalizedEmail, username: normalizedUsername }
     );
 
     if (existing) {
@@ -38,9 +41,9 @@ export async function POST(req: Request) {
     // Shrani uporabnika z navadnim geslom (BREZ hashinga)
     await writeClient.create({
       _type: "user",
-      username: username.trim(),
-      email: email.trim(),
-      password: password.trim(), // ← plain text geslo
+      username: normalizedUsername,
+      email: normalizedEmail,
+      password: normalizedPassword.trim(), // ← plain text geslo
       // Če imaš letni cilj z initialValue v schemi, ga ni treba podajat tukaj
     });
 
