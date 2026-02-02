@@ -36,6 +36,7 @@ import { apiPostForm, apiPostJson } from "@/lib/api";
 import { GRAPH_META, getDataForYear, chartOptions } from "@/lib/chart";
 import { filterSortTransactions } from "@/lib/transactions";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import GoalCard from "@/components/dashboard/GoalCard";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -244,42 +245,16 @@ export default function DashboardClient({
         <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center sm:text-left">Živjo, {username}!</h2>
 
         {/* LETNI CILJ DOBIČKA */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-200">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-            <h3 className="text-lg sm:text-xl font-bold">Letni cilj dobička {new Date().getFullYear()}</h3>
-            <span className="text-xl sm:text-2xl font-black text-gray-800">
-              {fmtDobiček} € <span className="text-sm text-gray-500 font-normal">/ {fmtCilj} €</span>
-            </span>
-          </div>
-
-          <div className="relative h-12 bg-gray-200 rounded-full overflow-hidden mb-4">
-            <div
-              className={`absolute inset-0 h-full transition-all duration-1000 ease-out ${
-                dobiček < 0 ? "bg-gradient-to-r from-red-500 to-rose-600" :
-                odstotekDobicka >= 100 ? "bg-gradient-to-r from-emerald-500 to-green-600" :
-                "bg-gradient-to-r from-indigo-500 to-purple-600"
-              }`}
-              style={{ width: `${dobiček < 0 ? 100 : Math.min(odstotekDobicka, 100)}%` }}
-            >
-              <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xl sm:text-2xl font-black text-white drop-shadow-md">
-                {dobiček < 0 ? "IZGUBA" : `${odstotekDobicka.toFixed(0)}%`}
-              </span>
-            </div>
-          </div>
-
-          <div className="text-center">
-            {dobiček < 0 ? (
-              <p className="text-base sm:text-lg font-bold text-red-600">V izgubi za {fmtIzguba} €</p>
-            ) : odstotekDobicka >= 100 ? (
-              <p className="text-lg sm:text-xl font-bold text-green-600">ČESTITKE! CILJ PRESEŽEN!</p>
-            ) : (
-              <p className="text-base sm:text-lg text-gray-700">Še <span className="font-bold">{fmtPreostanek} €</span> do cilja</p>
-            )}
-          </div>
-        </div>
+        <GoalCard
+          year={new Date().getFullYear()}
+          dobiček={dobiček}
+          letniCiljDobicka={letniCiljDobicka}
+          fmtDob={fmtDobiček}
+          fmtCilj={fmtCilj}
+          fmtPreostanek={fmtPreostanek}
+          fmtIzguba={fmtIzguba}
+          odstotekDobicka={odstotekDobicka}
+        />
 
         {/* 4 KARTICE – mobilno v 2 stolpca, desktop 4 */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
