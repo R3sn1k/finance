@@ -32,6 +32,8 @@ import {
 import type { DashboardProps, Transakcija, MonthlyData, GraphType, FilterType } from "@/types/dashboard";
 import { formatMoney, formatIntSl } from "@/lib/format";
 import { dayStamp, monthLabelSl } from "@/lib/date";
+import { apiPostForm, apiPostJson } from "@/lib/api";
+
 
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -149,44 +151,29 @@ export default function DashboardClient({
   };
 
   async function dodajTransakcijo() {
-    if (!znesek || !opis) return;
+  if (!znesek || !opis) return;
 
-    const res = await fetch("/api/dodaj-transakcijo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tip, znesek: Number(znesek), opis }),
-    });
-
-    if (res.ok) {
-      setZnesek("");
-      setOpis("");
-      setOpenTransakcija(false);
-      router.refresh();
-    } else {
-      alert("Napaka pri dodajanju transakcije");
-    }
+  try {
+    await apiPostJson("/api/dodaj-transakcijo", { tip, znesek: Number(znesek), opis });
+    setZnesek("");
+    setOpis("");
+    setOpenTransakcija(false);
+    router.refresh();
+  } catch (e: any) {
+    alert(e?.message || "Napaka pri dodajanju transakcije");
   }
+}
 
   async function izbrisiTransakcijo(id: string) {
-    if (!confirm("Res želiš izbrisati to transakcijo?")) return;
+  if (!confirm("Res želiš izbrisati to transakcijo?")) return;
 
-    try {
-      const res = await fetch("/api/izbrisi-transakcijo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transakcijaId: id }),
-      });
-
-      if (res.ok) {
-        setTransakcije(prev => prev.filter(t => t._id !== id));
-        router.refresh();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Napaka pri brisanju transakcije.");
-      }
-    } catch {
-      alert("Napaka pri povezavi.");
-    }
+  try {
+    await apiPostJson("/api/izbrisi-transakcijo", { transakcijaId: id });
+    setTransakcije((prev) => prev.filter((t) => t._id !== id));
+    router.refresh();
+  } catch (e: any) {
+    alert(e?.message || "Napaka pri brisanju transakcije.");
+  }
   }
 
   async function izbrisiProfil() {
@@ -210,16 +197,20 @@ export default function DashboardClient({
     if (imageFile) formData.append("image", imageFile);
     if (Number(ciljInput) !== letniCiljDobicka) formData.append("letniCiljDobicka", ciljInput);
 
-    const res = await fetch("/api/urejanjeprofila", { method: "POST", body: formData });
-    if (res.ok) {
-      const data = await res.json();
+    try {
+      const data = await apiPostForm<{ username?: string; profileImage?: string | null }>(
+        "/api/urejanjeprofila",
+        formData
+      );
+
       setUsername(data.username || editUsername);
       setProfileImage(data.profileImage || profileImage);
       setOpenProfileEdit(false);
       router.refresh();
-    } else {
-      alert("Napaka pri shranjevanju profila");
+    } catch (e: any) {
+      alert(e?.message || "Napaka pri shranjevanju profila");
     }
+
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
