@@ -1,13 +1,15 @@
 // app/dashboard/finance/page.tsx
 import { writeClient } from "@/sanity/lib/client";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import DodajTransakcijo from "./DodajTransakcijo";
 import TabelaTransakcij from "./TabelaTransakcij";
 
 export const revalidate = 0;
 
 export default async function FinancePage() {
-  const userEmail = (await cookies()).get("userEmail")?.value || "neznan";
+  const userEmail = (await cookies()).get("userEmail")?.value;
+  if (!userEmail) redirect("/login");
 
   const transakcije = await writeClient.fetch(
     `*[_type == "transakcija" && userEmail == $userEmail] | order(datum desc) {

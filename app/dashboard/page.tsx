@@ -1,12 +1,14 @@
 // app/dashboard/page.tsx
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { writeClient } from "@/sanity/lib/client";
 import DashboardClient from "./DashboardClient";
 
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const userEmail = (await cookies()).get("userEmail")?.value || "neznan";
+  const userEmail = (await cookies()).get("userEmail")?.value;
+  if (!userEmail) redirect("/login");
 
   const user = await writeClient.fetch(
     `*[_type == "user" && email == $email][0]{
