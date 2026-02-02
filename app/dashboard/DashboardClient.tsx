@@ -37,6 +37,7 @@ import { GRAPH_META, getDataForYear, chartOptions } from "@/lib/chart";
 import { filterSortTransactions } from "@/lib/transactions";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import GoalCard from "@/components/dashboard/GoalCard";
+import StatCards from "@/components/dashboard/StatCards";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -257,26 +258,13 @@ export default function DashboardClient({
         />
 
         {/* 4 KARTICE – mobilno v 2 stolpca, desktop 4 */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <button onClick={() => setOpenGraph("dobiček")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
-            <p className="text-xs sm:text-sm text-gray-500 mb-1">Dobiček</p>
-            <p className={`text-2xl sm:text-3xl font-bold ${dobiček >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {formatMoney(dobiček)} €
-            </p>
-          </button>
-          <button onClick={() => setOpenGraph("prihodki")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
-            <p className="text-xs sm:text-sm text-gray-500 mb-1">Prihodki</p>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatMoney(prihodki)} €</p>
-          </button>
-          <button onClick={() => setOpenGraph("odhodki")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
-            <p className="text-xs sm:text-sm text-gray-500 mb-1">Odhodki</p>
-            <p className="text-2xl sm:text-3xl font-bold text-orange-500">{formatMoney(odhodki)} €</p>
-          </button>
-          <button onClick={() => setOpenGraph("prodaje")} className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left">
-            <p className="text-xs sm:text-sm text-gray-500 mb-1">Število prodaj</p>
-            <p className="text-2xl sm:text-3xl font-bold text-indigo-600">{steviloProdaj}</p>
-          </button>
-        </div>
+        <StatCards
+          dobiček={dobiček}
+          prihodki={prihodki}
+          odhodki={odhodki}
+          steviloProdaj={steviloProdaj}
+          onOpenGraph={(t) => setOpenGraph(t)}
+        />
 
         {/* TABELA TRANSAKCIJ */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
