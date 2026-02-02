@@ -34,6 +34,7 @@ import { formatMoney, formatIntSl } from "@/lib/format";
 import { dayStamp, monthLabelSl } from "@/lib/date";
 import { apiPostForm, apiPostJson } from "@/lib/api";
 import { GRAPH_META, getDataForYear, chartOptions } from "@/lib/chart";
+import { filterSortTransactions } from "@/lib/transactions";
 
 
 
@@ -209,18 +210,12 @@ export default function DashboardClient({
     }
   };
 
-  const filteredTransactions = transakcije
-  .filter((t) => {
-    const matchesType = filterType === "all" || t.tip === filterType;
-    const matchesSearch = !searchTerm || t.opis.toLowerCase().includes(searchTerm.toLowerCase());
-    if (!matchesType || !matchesSearch) return false;
-
-    if (selectedDate) {
-      return dayStamp(new Date(t.datum)) === dayStamp(new Date(selectedDate));
-    }
-    return true;
-  })
-  .sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime());
+  const filteredTransactions = filterSortTransactions({
+    transakcije,
+    filterType,
+    selectedDate,
+    searchTerm,
+  });
   
   const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
   const displayedTransactions = filteredTransactions.slice(
