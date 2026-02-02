@@ -33,6 +33,8 @@ import type { DashboardProps, Transakcija, MonthlyData, GraphType, FilterType } 
 import { formatMoney, formatIntSl } from "@/lib/format";
 import { dayStamp, monthLabelSl } from "@/lib/date";
 import { apiPostForm, apiPostJson } from "@/lib/api";
+import { GRAPH_META, getDataForYear, chartOptions } from "@/lib/chart";
+
 
 
 
@@ -116,39 +118,23 @@ export default function DashboardClient({
 
   const monthLabels = allMonths.map(monthLabelSl);
 
-  const getDataForYear = (type: "dobiček" | "prihodki" | "odhodki" | "prodaje") => {
-    return allMonths.map((key) => {
-      const d = monthlyData[key] || { prihodki: 0, odhodki: 0, prodaje: 0 };
-      switch (type) {
-        case "dobiček": return d.prihodki - d.odhodki;
-        case "prihodki": return d.prihodki;
-        case "odhodki": return d.odhodki;
-        case "prodaje": return d.prodaje;
-        default: return 0;
-      }
-    });
-  };
 
   const chartData = {
     labels: monthLabels,
-    datasets: [{
-      label: openGraph === "dobiček" ? "Dobiček" : openGraph === "prihodki" ? "Prihodki" : openGraph === "odhodki" ? "Odhodki" : "Prodaje",
-      data: openGraph ? getDataForYear(openGraph) : [],
-      borderColor: openGraph === "dobiček" || openGraph === "prihodki" ? "#10B981" : openGraph === "odhodki" ? "#F97316" : "#6366F1",
-      backgroundColor: openGraph === "dobiček" || openGraph === "prihodki" ? "rgba(16,185,129,0.1)" : openGraph === "odhodki" ? "rgba(249,115,22,0.1)" : "rgba(99,102,241,0.1)",
-      tension: 0.4,
-      fill: true,
-    }],
+    datasets: openGraph
+      ? [
+          {
+            label: GRAPH_META[openGraph].label,
+            data: getDataForYear({ type: openGraph, months: allMonths, monthlyData }),
+            borderColor: GRAPH_META[openGraph].border,
+            backgroundColor: GRAPH_META[openGraph].bg,
+            tension: 0.4,
+            fill: true,
+          },
+        ]
+      : [],
   };
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { maxRotation: 0, minRotation: 0 } },
-    },
-  };
 
   async function dodajTransakcijo() {
   if (!znesek || !opis) return;
