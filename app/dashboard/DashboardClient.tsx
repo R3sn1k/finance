@@ -1,10 +1,8 @@
-// app/dashboard/DashboardClient.tsx – POPOLNA MOBILNO RESPONSIVE VERZIJA
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Line } from "react-chartjs-2";
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,26 +13,15 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import {
-  LogOut,
-  Plus,
-  X,
-  Edit2,
-  Camera,
-  Filter,
-  Calendar,
-  ArrowLeft,
-  ArrowRight,
-  Search,
-  Trash2,
-  Menu,
-} from "lucide-react";
-import type { DashboardProps, Transakcija, MonthlyData, GraphType, FilterType } from "@/types/dashboard";
-import { formatMoney, formatIntSl } from "@/lib/format";
-import { dayStamp, monthLabelSl } from "@/lib/date";
+
+import type { DashboardProps, Transakcija, GraphType, FilterType } from "@/types/dashboard";
+
+import { formatIntSl } from "@/lib/format";
+import { monthLabelSl } from "@/lib/date";
 import { apiPostForm, apiPostJson } from "@/lib/api";
-import { GRAPH_META, getDataForYear, chartOptions } from "@/lib/chart";
+import { GRAPH_META, getDataForYear } from "@/lib/chart";
 import { filterSortTransactions } from "@/lib/transactions";
+
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import GoalCard from "@/components/dashboard/GoalCard";
 import StatCards from "@/components/dashboard/StatCards";
@@ -43,9 +30,9 @@ import AddTransactionModal from "@/components/dashboard/modals/AddTransactionMod
 import GraphModal from "@/components/dashboard/modals/GraphModal";
 import EditProfileModal from "@/components/dashboard/modals/EditProfileModal";
 
-
-
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+const TRANSACTIONS_PER_PAGE = 10;
 
 export default function DashboardClient({
   username: initialUsername,
@@ -60,16 +47,21 @@ export default function DashboardClient({
 }: DashboardProps) {
   const router = useRouter();
 
+  // UI state
   const [openTransakcija, setOpenTransakcija] = useState(false);
   const [openGraph, setOpenGraph] = useState<GraphType | null>(null);
   const [openProfileEdit, setOpenProfileEdit] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Year selection
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
+  // New transaction form
   const [tip, setTip] = useState<"prihodek" | "odhodek">("prihodek");
   const [znesek, setZnesek] = useState("");
   const [opis, setOpis] = useState("");
 
+  // Profile
   const [username, setUsername] = useState(initialUsername);
   const [profileImage, setProfileImage] = useState<string | null>(initialProfileImage);
 
@@ -81,36 +73,35 @@ export default function DashboardClient({
   const [imagePreview, setImagePreview] = useState<string | null>(initialProfileImage);
   const [ciljInput, setCiljInput] = useState(letniCiljDobicka.toString());
 
+  // Transactions list
   const [transakcije, setTransakcije] = useState<Transakcija[]>(initialTransakcije);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const transactionsPerPage = 10;
-
-  const odstotekDobicka = dobiček > 0 ? Math.min((dobiček / letniCiljDobicka) * 100, 100) : 0;
-
-  const [fmtDobiček, setFmtDobiček] = useState("");
-  const [fmtCilj, setFmtCilj] = useState("");
-  const [fmtPreostanek, setFmtPreostanek] = useState("");
-  const [fmtIzguba, setFmtIzguba] = useState("");
-
-  useEffect(() => {
-    setFmtDobiček(dobiček.toFixed(2).replace(".", ","));
-    setFmtCilj(formatIntSl(letniCiljDobicka));
-    setFmtPreostanek((letniCiljDobicka - dobiček).toFixed(0).replace(".", ","));
-    setFmtIzguba(Math.abs(dobiček).toFixed(2).replace(".", ","));
-  }, [dobiček, letniCiljDobicka]);
-
   useEffect(() => {
     setTransakcije(initialTransakcije);
   }, [initialTransakcije]);
 
-  const availableYears = Array.from(
-    new Set(Object.keys(monthlyData).map((key) => parseInt(key.split("-")[0], 10)))
-  ).sort((a, b) => b - a);
+  // ===== Derived values (no state needed) =====
+  const odstotekDobicka = useMemo(() => {
+    return dobiček > 0 ? Math.min((dobiček / letniCiljDobicka) * 100, 100) : 0;
+  }, [dobiček, letniCiljDobicka]);
+
+  const fmt = useMemo(() => {
+    const fmtDob = dobiček.toFixed(2).replace(".", ",");
+    const fmtCilj = formatIntSl(letniCiljDobicka);
+    const fmtPreostanek = (letniCiljDobicka - dobiček).toFixed(0).replace(".", ",");
+    const fmtIzguba = Math.abs(dobiček).toFixed(2).replace(".", ",");
+    return { fmtDob, fmtCilj, fmtPreostanek, fmtIzguba };
+  }, [dobiček, letniCiljDobicka]);
+
+  const availableYears = useMemo(() => {
+    return Array.from(new Set(Object.keys(monthlyData).map((key) => parseInt(key.split("-")[0], 10)))).sort(
+      (a, b) => b - a
+    );
+  }, [monthlyData]);
 
   useEffect(() => {
     if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
@@ -118,76 +109,106 @@ export default function DashboardClient({
     }
   }, [availableYears, selectedYear]);
 
-  const allMonths = Array.from({ length: 12 }, (_, i) => {
-    const month = (i + 1).toString().padStart(2, "0");
-    return `${selectedYear}-${month}`;
-  });
+  const allMonths = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const month = String(i + 1).padStart(2, "0");
+      return `${selectedYear}-${month}`;
+    });
+  }, [selectedYear]);
 
-  const monthLabels = allMonths.map(monthLabelSl);
+  const monthLabels = useMemo(() => allMonths.map(monthLabelSl), [allMonths]);
 
+  const chartData = useMemo(() => {
+    return {
+      labels: monthLabels,
+      datasets: openGraph
+        ? [
+            {
+              label: GRAPH_META[openGraph].label,
+              data: getDataForYear({ type: openGraph, months: allMonths, monthlyData }),
+              borderColor: GRAPH_META[openGraph].border,
+              backgroundColor: GRAPH_META[openGraph].bg,
+              tension: 0.4,
+              fill: true,
+            },
+          ]
+        : [],
+    };
+  }, [monthLabels, openGraph, allMonths, monthlyData]);
 
-  const chartData = {
-    labels: monthLabels,
-    datasets: openGraph
-      ? [
-          {
-            label: GRAPH_META[openGraph].label,
-            data: getDataForYear({ type: openGraph, months: allMonths, monthlyData }),
-            borderColor: GRAPH_META[openGraph].border,
-            backgroundColor: GRAPH_META[openGraph].bg,
-            tension: 0.4,
-            fill: true,
-          },
-        ]
-      : [],
+  const filteredTransactions = useMemo(() => {
+    return filterSortTransactions({
+      transakcije,
+      filterType,
+      selectedDate,
+      searchTerm,
+    });
+  }, [transakcije, filterType, selectedDate, searchTerm]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredTransactions.length / TRANSACTIONS_PER_PAGE);
+  }, [filteredTransactions.length]);
+
+  const displayedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * TRANSACTIONS_PER_PAGE;
+    return filteredTransactions.slice(start, start + TRANSACTIONS_PER_PAGE);
+  }, [filteredTransactions, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, selectedDate, searchTerm]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-
+  // ===== Actions =====
   async function dodajTransakcijo() {
-  if (!znesek || !opis) return;
+    if (!znesek || !opis) return;
 
-  try {
-    await apiPostJson("/api/dodaj-transakcijo", { tip, znesek: Number(znesek), opis });
-    setZnesek("");
-    setOpis("");
-    setOpenTransakcija(false);
-    router.refresh();
-  } catch (e: any) {
-    alert(e?.message || "Napaka pri dodajanju transakcije");
+    try {
+      await apiPostJson("/api/dodaj-transakcijo", { tip, znesek: Number(znesek), opis });
+      setZnesek("");
+      setOpis("");
+      setOpenTransakcija(false);
+      router.refresh();
+    } catch (e: any) {
+      alert(e?.message || "Napaka pri dodajanju transakcije");
+    }
   }
-}
 
   async function izbrisiTransakcijo(id: string) {
-  if (!confirm("Res želiš izbrisati to transakcijo?")) return;
+    if (!confirm("Res želiš izbrisati to transakcijo?")) return;
 
-  try {
-    await apiPostJson("/api/izbrisi-transakcijo", { transakcijaId: id });
-    setTransakcije((prev) => prev.filter((t) => t._id !== id));
-    router.refresh();
-  } catch (e: any) {
-    alert(e?.message || "Napaka pri brisanju transakcije.");
-  }
+    try {
+      await apiPostJson("/api/izbrisi-transakcijo", { transakcijaId: id });
+      setTransakcije((prev) => prev.filter((t) => t._id !== id));
+      router.refresh();
+    } catch (e: any) {
+      alert(e?.message || "Napaka pri brisanju transakcije.");
+    }
   }
 
   async function izbrisiProfil() {
     if (!confirm("RES ŽELIŠ ZA VEDNO IZBRISATI CELOTEN RAČUN IN VSE TRANSAKCIJE?\nTo je NEPOVRATNO!")) return;
 
     const res = await fetch("/api/izbrisiprofila", { method: "POST" });
-    if (res.ok) {
-      window.location.href = "/login";
-    } else {
-      alert("Napaka pri brisanju profila.");
-    }
+    if (res.ok) window.location.href = "/login";
+    else alert("Napaka pri brisanju profila.");
   }
 
   async function shraniProfil() {
     const formData = new FormData();
+
     if (editUsername !== username) formData.append("username", editUsername);
+
     if (newPassword && newPassword === confirmPassword) {
       formData.append("oldPassword", oldPassword);
       formData.append("newPassword", newPassword);
     }
+
     if (imageFile) formData.append("image", imageFile);
+
     if (Number(ciljInput) !== letniCiljDobicka) formData.append("letniCiljDobicka", ciljInput);
 
     try {
@@ -203,43 +224,21 @@ export default function DashboardClient({
     } catch (e: any) {
       alert(e?.message || "Napaka pri shranjevanju profila");
     }
-
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
-  const filteredTransactions = filterSortTransactions({
-    transakcije,
-    filterType,
-    selectedDate,
-    searchTerm,
-  });
-  
-  const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
-  const displayedTransactions = filteredTransactions.slice(
-    (currentPage - 1) * transactionsPerPage,
-    currentPage * transactionsPerPage
-  );
-
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
-  };
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterType, selectedDate, searchTerm]);
-
+  // ===== Render =====
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
-      {/* HEADER – MOBILNI MENU */}
       <DashboardHeader
         username={username}
         profileImage={profileImage}
@@ -251,19 +250,17 @@ export default function DashboardClient({
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center sm:text-left">Živjo, {username}!</h2>
 
-        {/* LETNI CILJ DOBIČKA */}
         <GoalCard
           year={new Date().getFullYear()}
           dobiček={dobiček}
           letniCiljDobicka={letniCiljDobicka}
-          fmtDob={fmtDobiček}
-          fmtCilj={fmtCilj}
-          fmtPreostanek={fmtPreostanek}
-          fmtIzguba={fmtIzguba}
+          fmtDob={fmt.fmtDob}
+          fmtCilj={fmt.fmtCilj}
+          fmtPreostanek={fmt.fmtPreostanek}
+          fmtIzguba={fmt.fmtIzguba}
           odstotekDobicka={odstotekDobicka}
         />
 
-        {/* 4 KARTICE – mobilno v 2 stolpca, desktop 4 */}
         <StatCards
           dobiček={dobiček}
           prihodki={prihodki}
@@ -272,7 +269,6 @@ export default function DashboardClient({
           onOpenGraph={(t) => setOpenGraph(t)}
         />
 
-        {/* TABELA TRANSAKCIJ */}
         <TransactionsSection
           filterType={filterType}
           setFilterType={setFilterType}
@@ -290,7 +286,6 @@ export default function DashboardClient({
         />
       </main>
 
-      {/* POPUP: DODAJ TRANSAKCIJO */}
       <AddTransactionModal
         open={openTransakcija}
         onClose={() => setOpenTransakcija(false)}
@@ -303,7 +298,6 @@ export default function DashboardClient({
         onSave={dodajTransakcijo}
       />
 
-      {/* POPUP: GRAF */}
       <GraphModal
         openGraph={openGraph}
         onClose={() => setOpenGraph(null)}
@@ -313,25 +307,24 @@ export default function DashboardClient({
         chartData={chartData}
       />
 
-      {/* POPUP: UREDI PROFIL */}
       <EditProfileModal
-          open={openProfileEdit}
-          onClose={() => setOpenProfileEdit(false)}
-          editUsername={editUsername}
-          setEditUsername={setEditUsername}
-          oldPassword={oldPassword}
-          setOldPassword={setOldPassword}
-          newPassword={newPassword}
-          setNewPassword={setNewPassword}
-          confirmPassword={confirmPassword}
-          setConfirmPassword={setConfirmPassword}
-          ciljInput={ciljInput}
-          setCiljInput={setCiljInput}
-          imagePreview={imagePreview}
-          onImageChange={handleImageChange}
-          onSave={shraniProfil}
-          onDeleteAccount={izbrisiProfil}
-        />
-            </div>
-      );
+        open={openProfileEdit}
+        onClose={() => setOpenProfileEdit(false)}
+        editUsername={editUsername}
+        setEditUsername={setEditUsername}
+        oldPassword={oldPassword}
+        setOldPassword={setOldPassword}
+        newPassword={newPassword}
+        setNewPassword={setNewPassword}
+        confirmPassword={confirmPassword}
+        setConfirmPassword={setConfirmPassword}
+        ciljInput={ciljInput}
+        setCiljInput={setCiljInput}
+        imagePreview={imagePreview}
+        onImageChange={handleImageChange}
+        onSave={shraniProfil}
+        onDeleteAccount={izbrisiProfil}
+      />
+    </div>
+  );
 }
