@@ -40,6 +40,7 @@ import GoalCard from "@/components/dashboard/GoalCard";
 import StatCards from "@/components/dashboard/StatCards";
 import TransactionsSection from "@/components/dashboard/TransactionsSection";
 import AddTransactionModal from "@/components/dashboard/modals/AddTransactionModal";
+import GraphModal from "@/components/dashboard/modals/GraphModal";
 
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -301,26 +302,14 @@ export default function DashboardClient({
       />
 
       {/* POPUP: GRAF */}
-      {openGraph && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-5xl w-full relative">
-            <button onClick={() => setOpenGraph(null)} className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
-              <X className="w-6 h-6 text-gray-700" />
-            </button>
-            <div className="flex flex-col gap-4 mb-6">
-              <h3 className="text-2xl sm:text-3xl font-black text-center">
-                {openGraph === "dobiček" ? "Dobiček" : openGraph === "prihodki" ? "Prihodki" : openGraph === "odhodki" ? "Odhodki" : "Število prodaj"} po mesecih
-              </h3>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="mx-auto px-5 py-3 border border-gray-300 rounded-lg text-base font-medium bg-white shadow-sm">
-                {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <div className="h-64 sm:h-96">
-              <Line data={chartData} options={chartOptions} />
-            </div>
-          </div>
-        </div>
-      )}
+      <GraphModal
+        openGraph={openGraph}
+        onClose={() => setOpenGraph(null)}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+        availableYears={availableYears}
+        chartData={chartData}
+      />
 
       {/* POPUP: UREDI PROFIL */}
       {openProfileEdit && (
