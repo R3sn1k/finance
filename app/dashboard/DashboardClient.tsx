@@ -39,6 +39,8 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import GoalCard from "@/components/dashboard/GoalCard";
 import StatCards from "@/components/dashboard/StatCards";
 import TransactionsSection from "@/components/dashboard/TransactionsSection";
+import AddTransactionModal from "@/components/dashboard/modals/AddTransactionModal";
+
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -286,34 +288,17 @@ export default function DashboardClient({
       </main>
 
       {/* POPUP: DODAJ TRANSAKCIJO */}
-      {openTransakcija && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold">Nova transakcija</h3>
-              <button onClick={() => setOpenTransakcija(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-5">
-              <select value={tip} onChange={(e) => setTip(e.target.value as any)} className="w-full p-4 rounded-lg border border-gray-300">
-                <option value="prihodek">Prihodek</option>
-                <option value="odhodek">Odhodek</option>
-              </select>
-              <input type="number" step="0.01" placeholder="Znesek (€)" value={znesek} onChange={(e) => setZnesek(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300" />
-              <input type="text" placeholder="Opis" value={opis} onChange={(e) => setOpis(e.target.value)} className="w-full p-4 rounded-lg border border-gray-300" />
-            </div>
-            <div className="flex justify-center gap-4 mt-8">
-              <button onClick={() => setOpenTransakcija(false)} className="px-8 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold">
-                Prekliči
-              </button>
-              <button onClick={dodajTransakcijo} className="px-10 py-3 bg-gray-900 hover:bg-black text-white rounded-lg font-semibold">
-                Shrani
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddTransactionModal
+        open={openTransakcija}
+        onClose={() => setOpenTransakcija(false)}
+        tip={tip}
+        setTip={setTip}
+        znesek={znesek}
+        setZnesek={setZnesek}
+        opis={opis}
+        setOpis={setOpis}
+        onSave={dodajTransakcijo}
+      />
 
       {/* POPUP: GRAF */}
       {openGraph && (
