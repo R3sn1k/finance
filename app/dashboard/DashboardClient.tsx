@@ -192,7 +192,7 @@ export default function DashboardClient({
   async function izbrisiProfil() {
     if (!confirm("RES ŽELIŠ ZA VEDNO IZBRISATI CELOTEN RAČUN IN VSE TRANSAKCIJE?\nTo je NEPOVRATNO!")) return;
 
-    const res = await fetch("/api/izbrisiprofila", { method: "POST" });
+    const res = await fetch("/api/izbrisprofila", { method: "POST" });
     if (res.ok) window.location.href = "/login";
     else alert("Napaka pri brisanju profila.");
   }
