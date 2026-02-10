@@ -2,8 +2,8 @@
 
 import { X } from "lucide-react";
 import { Line } from "react-chartjs-2";
-import type { GraphType } from "../../../types/dashboard"; // če ti to ne prime, glej opombo spodaj
-import { GRAPH_META, chartOptions } from "../../../lib/chart"; // opomba spodaj
+import type { GraphType } from "../../../types/dashboard";
+import { GRAPH_META, chartOptions } from "../../../lib/chart";
 
 type Props = {
   openGraph: GraphType | null;
