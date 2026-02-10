@@ -33,6 +33,7 @@ export default function AddTransactionModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {/* Modal container */}
       <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold">Nova transakcija</h3>
@@ -41,6 +42,7 @@ export default function AddTransactionModal({
           </button>
         </div>
 
+        {/* Form fields */}
         <div className="space-y-5">
           <select
             value={tip}
@@ -69,6 +71,7 @@ export default function AddTransactionModal({
           />
         </div>
 
+        {/* Actions */}
         <div className="flex justify-center gap-4 mt-8">
           <button onClick={onClose} className="px-8 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold">
             Prekliči

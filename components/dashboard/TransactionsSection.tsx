@@ -42,6 +42,7 @@ export default function TransactionsSection({
 }: Props) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      {/* Header + add button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h3 className="text-xl sm:text-2xl font-bold text-gray-800">Zgodovina transakcij</h3>
 
@@ -53,7 +54,7 @@ export default function TransactionsSection({
         </button>
       </div>
 
-      {/* FILTRI */}
+      {/* Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="relative">
           <Filter className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
@@ -90,12 +91,14 @@ export default function TransactionsSection({
         </div>
       </div>
 
+      {/* Empty state vs table */}
       {filteredCount === 0 ? (
         <p className="text-center text-gray-500 py-12 text-base">
           {selectedDate ? `Ni transakcij za ${new Date(selectedDate).toLocaleDateString("sl-SI")}` : "Še ni transakcij"}
         </p>
       ) : (
         <>
+          {/* Transactions table */}
           <div className="overflow-x-auto -mx-6 px-6">
             <table className="w-full text-left text-sm">
               <thead className="border-b-2 border-gray-200">
@@ -139,6 +142,7 @@ export default function TransactionsSection({
             </table>
           </div>
 
+          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 mt-6">
               <button
@@ -167,3 +171,4 @@ export default function TransactionsSection({
     </div>
   );
 }
+

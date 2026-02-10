@@ -12,6 +12,7 @@ type Transakcija = {
 export default function TabelaTransakcij({ transakcije }: { transakcije: Transakcija[] }) {
   if (transakcije.length === 0) {
     return (
+      {/* Empty state */}
       <div className="text-center text-white/70 mt-20 text-2xl">
         Še ni vnešenih transakcij
       </div>
@@ -20,6 +21,7 @@ export default function TabelaTransakcij({ transakcije }: { transakcije: Transak
 
   return (
     <div className="max-w-6xl mx-auto mt-12 bg-white/10 backdrop-blur-lg rounded-3xl overflow-hidden shadow-2xl">
+      {/* Transactions table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-white/20">
