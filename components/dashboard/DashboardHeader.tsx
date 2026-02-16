@@ -20,6 +20,7 @@ export default function DashboardHeader({
 }: Props) {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      {/* Top bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Finance - dresi</h1>
 
@@ -59,6 +60,7 @@ export default function DashboardHeader({
       </div>
 
       {/* Mobile menu dropdown */}
+      {/* Mobile menu content */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200 py-4 px-6">
           <div className="flex flex-col items-center gap-4">

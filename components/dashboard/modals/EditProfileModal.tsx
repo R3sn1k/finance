@@ -51,6 +51,7 @@ export default function EditProfileModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      {/* Modal container */}
       <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full max-h-screen overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold">Uredi profil</h3>
@@ -59,6 +60,7 @@ export default function EditProfileModal({
           </button>
         </div>
 
+        {/* Avatar + upload */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative">
             {imagePreview ? (
@@ -82,6 +84,7 @@ export default function EditProfileModal({
           </div>
         </div>
 
+        {/* Profile form */}
         <div className="space-y-4">
           <input
             type="text"
@@ -126,6 +129,7 @@ export default function EditProfileModal({
           </div>
         </div>
 
+        {/* Actions */}
         <div className="flex justify-center gap-4 mt-8">
           <button onClick={onClose} className="px-8 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold">
             Prekliči
@@ -135,6 +139,7 @@ export default function EditProfileModal({
           </button>
         </div>
 
+        {/* Danger zone */}
         <div className="mt-10">
           <button
             onClick={onDeleteAccount}
