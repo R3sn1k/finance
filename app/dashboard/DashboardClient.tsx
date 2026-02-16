@@ -239,6 +239,7 @@ export default function DashboardClient({
   // ===== Render =====
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
+      {/* Top navigation */}
       <DashboardHeader
         username={username}
         profileImage={profileImage}
@@ -247,9 +248,11 @@ export default function DashboardClient({
         onOpenProfile={() => setOpenProfileEdit(true)}
       />
 
+      {/* Main content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center sm:text-left">Živjo, {username}!</h2>
 
+        {/* Goal summary */}
         <GoalCard
           year={new Date().getFullYear()}
           dobiček={dobiček}
@@ -261,6 +264,7 @@ export default function DashboardClient({
           odstotekDobicka={odstotekDobicka}
         />
 
+        {/* KPI cards */}
         <StatCards
           dobiček={dobiček}
           prihodki={prihodki}
@@ -269,6 +273,7 @@ export default function DashboardClient({
           onOpenGraph={(t) => setOpenGraph(t)}
         />
 
+        {/* Transactions list */}
         <TransactionsSection
           filterType={filterType}
           setFilterType={setFilterType}
@@ -286,6 +291,7 @@ export default function DashboardClient({
         />
       </main>
 
+      {/* Add transaction modal */}
       <AddTransactionModal
         open={openTransakcija}
         onClose={() => setOpenTransakcija(false)}
@@ -298,6 +304,7 @@ export default function DashboardClient({
         onSave={dodajTransakcijo}
       />
 
+      {/* Graph modal */}
       <GraphModal
         openGraph={openGraph}
         onClose={() => setOpenGraph(null)}
@@ -307,6 +314,7 @@ export default function DashboardClient({
         chartData={chartData}
       />
 
+      {/* Edit profile modal */}
       <EditProfileModal
         open={openProfileEdit}
         onClose={() => setOpenProfileEdit(false)}

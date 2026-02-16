@@ -28,6 +28,7 @@ export default function GraphModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      {/* Modal container */}
       <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-5xl w-full relative">
         <button
           onClick={onClose}
@@ -36,6 +37,7 @@ export default function GraphModal({
           <X className="w-6 h-6 text-gray-700" />
         </button>
 
+        {/* Title + year selector */}
         <div className="flex flex-col gap-4 mb-6">
           <h3 className="text-2xl sm:text-3xl font-black text-center">
             {GRAPH_META[openGraph].label} po mesecih
@@ -54,6 +56,7 @@ export default function GraphModal({
           </select>
         </div>
 
+        {/* Chart */}
         <div className="h-64 sm:h-96">
           <Line data={chartData} options={chartOptions as any} />
         </div>

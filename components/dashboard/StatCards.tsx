@@ -20,6 +20,7 @@ export default function StatCards({
 }: Props) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      {/* Profit */}
       <button
         onClick={() => onOpenGraph("dobiček")}
         className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
@@ -30,6 +31,7 @@ export default function StatCards({
         </p>
       </button>
 
+      {/* Income */}
       <button
         onClick={() => onOpenGraph("prihodki")}
         className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
@@ -38,6 +40,7 @@ export default function StatCards({
         <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatMoney(prihodki)} €</p>
       </button>
 
+      {/* Expenses */}
       <button
         onClick={() => onOpenGraph("odhodki")}
         className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
@@ -46,6 +49,7 @@ export default function StatCards({
         <p className="text-2xl sm:text-3xl font-bold text-orange-500">{formatMoney(odhodki)} €</p>
       </button>
 
+      {/* Sales count */}
       <button
         onClick={() => onOpenGraph("prodaje")}
         className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
