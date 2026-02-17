@@ -42,7 +42,7 @@ export default function AddTransactionModal({
           </button>
         </div>
 
-        {/* Form fields */}
+        {/* Form fields*/}
         <div className="space-y-5">
           <select
             value={tip}
