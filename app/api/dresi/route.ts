@@ -10,6 +10,7 @@ type DresDoc = {
   userEmail?: string;
   ime?: string;
   cenaProdaje?: number;
+  zaloga?: number;
   status?: string;
 };
 
@@ -40,6 +41,7 @@ export async function POST(req: Request) {
   const formData = await req.formData();
   const ime = String(formData.get("ime") || "").trim();
   const cenaProdaje = Number(formData.get("cenaProdaje"));
+  const kolicina = Math.floor(Number(formData.get("kolicina") || 1));
   const status = String(formData.get("status") || "na_zalogi");
   const slika = formData.get("slika");
 
@@ -49,6 +51,10 @@ export async function POST(req: Request) {
 
   if (!Number.isFinite(cenaProdaje) || cenaProdaje < 0) {
     return NextResponse.json({ error: "Vnesi veljavno prodajno ceno." }, { status: 400 });
+  }
+
+  if (!Number.isFinite(kolicina) || kolicina < 1) {
+    return NextResponse.json({ error: "Količina mora biti vsaj 1." }, { status: 400 });
   }
 
   if (!allowedStatuses.has(status)) {
@@ -76,19 +82,21 @@ export async function POST(req: Request) {
     ime,
     cenaProdaje,
     status,
-    zaloga: status === "prodan" ? 0 : 1,
+    zaloga: status === "prodan" ? 0 : kolicina,
     ...(imageRef ? { slika: imageRef } : {}),
   });
 
   if (status === "prodan") {
     const datum = new Date().toISOString();
+    const znesek = cenaProdaje * kolicina;
     await writeClient
       .transaction()
       .create({
         _type: "prodaja",
         userEmail,
         dres: { _type: "reference", _ref: dres._id },
-        cenaProdaje,
+        cenaProdaje: znesek,
+        kolicina,
         opomba: `Prodaja - ${ime}`,
         datum,
       })
@@ -96,8 +104,8 @@ export async function POST(req: Request) {
         _type: "transakcija",
         userEmail,
         tip: "prihodek",
-        znesek: cenaProdaje,
-        opis: `Prodaja dresa - ${ime}`,
+        znesek,
+        opis: kolicina > 1 ? `Prodaja ${kolicina}x dresa - ${ime}` : `Prodaja dresa - ${ime}`,
         datum,
       })
       .commit();
@@ -114,7 +122,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Niste prijavljeni." }, { status: 401 });
   }
 
-  const { dresId, status } = await req.json();
+  const { dresId, status, kolicina = 1, opis } = await req.json();
 
   if (!dresId || typeof dresId !== "string") {
     return NextResponse.json({ error: "Manjka ID dresa." }, { status: 400 });
@@ -135,26 +143,49 @@ export async function PUT(req: Request) {
 
   if (status === "prodan") {
     const cenaProdaje = Number(dres.cenaProdaje || 0);
+    const zaloga = Math.max(0, Math.floor(Number(dres.zaloga || 0)));
+    const prodanaKolicina = Math.floor(Number(kolicina));
     const ime = dres.ime || "Dres";
     const datum = new Date().toISOString();
+    const opisTransakcije = typeof opis === "string" && opis.trim()
+      ? opis.trim()
+      : prodanaKolicina > 1
+        ? `Prodaja ${prodanaKolicina}x dresa - ${ime}`
+        : `Prodaja dresa - ${ime}`;
+
+    if (!Number.isFinite(prodanaKolicina) || prodanaKolicina < 1) {
+      return NextResponse.json({ error: "Količina prodaje mora biti vsaj 1." }, { status: 400 });
+    }
+
+    if (zaloga < 1) {
+      return NextResponse.json({ error: "Ta dres nima zaloge." }, { status: 400 });
+    }
+
+    if (prodanaKolicina > zaloga) {
+      return NextResponse.json({ error: `Na zalogi je samo ${zaloga} kosov.` }, { status: 400 });
+    }
+
+    const novaZaloga = zaloga - prodanaKolicina;
+    const znesek = cenaProdaje * prodanaKolicina;
 
     await writeClient
       .transaction()
-      .patch(dresId, (patch) => patch.set({ status: "prodan", zaloga: 0 }))
+      .patch(dresId, (patch) => patch.set({ status: novaZaloga === 0 ? "prodan" : "na_zalogi", zaloga: novaZaloga }))
       .create({
         _type: "prodaja",
         userEmail,
         dres: { _type: "reference", _ref: dresId },
-        cenaProdaje,
-        opomba: `Prodaja - ${ime}`,
+        cenaProdaje: znesek,
+        kolicina: prodanaKolicina,
+        opomba: opisTransakcije,
         datum,
       })
       .create({
         _type: "transakcija",
         userEmail,
         tip: "prihodek",
-        znesek: cenaProdaje,
-        opis: `Prodaja dresa - ${ime}`,
+        znesek,
+        opis: opisTransakcije,
         datum,
       })
       .commit();
@@ -162,7 +193,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true });
   }
 
-  await writeClient.patch(dresId).set({ status, zaloga: 1 }).commit();
+  await writeClient.patch(dresId).set({ status, zaloga: Math.max(1, Number(dres.zaloga || 1)) }).commit();
 
   return NextResponse.json({ success: true });
 }
@@ -175,7 +206,14 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Niste prijavljeni." }, { status: 401 });
   }
 
-  const { dresId } = await req.json();
+  let body: { dresId?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Manjka ID dresa." }, { status: 400 });
+  }
+
+  const { dresId } = body;
 
   if (!dresId || typeof dresId !== "string") {
     return NextResponse.json({ error: "Manjka ID dresa." }, { status: 400 });
@@ -186,7 +224,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Dres ne obstaja ali nimaš pravic." }, { status: 404 });
   }
 
-  await writeClient.delete(dresId);
+  await writeClient.patch(dresId).set({ status: "prodan", zaloga: 0 }).commit();
 
   return NextResponse.json({ success: true });
 }

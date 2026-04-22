@@ -13,6 +13,7 @@ export default async function DresiPage() {
       _createdAt,
       ime,
       cenaProdaje,
+      zaloga,
       status,
       "slikaUrl": slika.asset->url
     }`,

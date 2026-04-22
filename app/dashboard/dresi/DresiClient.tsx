@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, ImagePlus, PackageCheck, Plus, Shirt, Trash2, Warehouse } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, ImagePlus, PackageCheck, Plus, Shirt, Trash2, Warehouse, X } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
@@ -14,55 +14,67 @@ export type Dres = {
   _createdAt: string;
   ime: string;
   cenaProdaje: number;
+  zaloga?: number;
   status?: DresStatus;
   slikaUrl?: string | null;
 };
 
 const statusMeta: Record<DresStatus, { label: string; className: string; icon: typeof Clock3 }> = {
-  v_prihodu: {
-    label: "V prihodu",
-    className: "bg-blue-400/10 text-blue-200 ring-blue-300/20",
-    icon: Clock3,
-  },
-  na_zalogi: {
-    label: "Na zalogi",
-    className: "bg-emerald-400/10 text-emerald-200 ring-emerald-300/20",
-    icon: Warehouse,
-  },
-  prodan: {
-    label: "Prodan",
-    className: "bg-slate-400/10 text-slate-300 ring-slate-300/20",
-    icon: CheckCircle2,
-  },
+  v_prihodu: { label: "V prihodu", className: "border-blue-300/60 text-blue-100", icon: Clock3 },
+  na_zalogi: { label: "Na zalogi", className: "border-emerald-300/60 text-emerald-100", icon: Warehouse },
+  prodan: { label: "Prodan", className: "border-slate-300/60 text-slate-100", icon: CheckCircle2 },
 };
 
-type Props = {
-  dresi: Dres[];
-};
+async function readJsonSafe(res: Response) {
+  const text = await res.text();
+  if (!text) return null;
 
-export default function DresiClient({ dresi }: Props) {
+  try {
+    return JSON.parse(text) as { error?: string };
+  } catch {
+    return null;
+  }
+}
+
+export default function DresiClient({ dresi }: { dresi: Dres[] }) {
   const router = useRouter();
   const [ime, setIme] = useState("");
   const [cenaProdaje, setCenaProdaje] = useState("");
+  const [kolicina, setKolicina] = useState("1");
   const [status, setStatus] = useState<DresStatus>("na_zalogi");
   const [slika, setSlika] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [saleDres, setSaleDres] = useState<Dres | null>(null);
+  const [saleKolicina, setSaleKolicina] = useState("1");
+  const [saleOpis, setSaleOpis] = useState("");
   const [error, setError] = useState("");
 
   const stats = useMemo(() => {
-    const inStockCount = dresi.filter((dres) => (dres.status || "na_zalogi") === "na_zalogi").length;
-    const incomingCount = dresi.filter((dres) => dres.status === "v_prihodu").length;
+    const inStockCount = dresi
+      .filter((dres) => (dres.status || "na_zalogi") === "na_zalogi")
+      .reduce((sum, dres) => sum + Math.max(0, Number(dres.zaloga || 0)), 0);
+    const incomingCount = dresi
+      .filter((dres) => dres.status === "v_prihodu")
+      .reduce((sum, dres) => sum + Math.max(0, Number(dres.zaloga || 0)), 0);
 
     return { inStockCount, incomingCount };
   }, [dresi]);
 
   async function handleAdd(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
     setError("");
+
+    const parsedKolicina = Math.floor(Number(kolicina));
 
     if (!ime.trim() || !cenaProdaje) {
       setError("Vnesi ime dresa in prodajno ceno.");
+      return;
+    }
+
+    if (!Number.isFinite(parsedKolicina) || parsedKolicina < 1) {
+      setError("Količina mora biti vsaj 1.");
       return;
     }
 
@@ -70,19 +82,21 @@ export default function DresiClient({ dresi }: Props) {
     const formData = new FormData();
     formData.append("ime", ime);
     formData.append("cenaProdaje", cenaProdaje);
+    formData.append("kolicina", String(parsedKolicina));
     formData.append("status", status);
     if (slika) formData.append("slika", slika);
 
     try {
       const res = await fetch("/api/dresi", { method: "POST", body: formData });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
       if (!res.ok) throw new Error(data?.error || "Napaka pri dodajanju dresa.");
 
       setIme("");
       setCenaProdaje("");
+      setKolicina("1");
       setStatus("na_zalogi");
       setSlika(null);
-      e.currentTarget.reset();
+      form.reset();
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Napaka pri dodajanju dresa.");
@@ -92,6 +106,12 @@ export default function DresiClient({ dresi }: Props) {
   }
 
   async function handleStatusChange(dresId: string, nextStatus: DresStatus) {
+    const dres = dresi.find((item) => item._id === dresId);
+    if (nextStatus === "prodan" && dres) {
+      openSaleModal(dres);
+      return;
+    }
+
     setError("");
     setBusyId(dresId);
 
@@ -101,7 +121,7 @@ export default function DresiClient({ dresi }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dresId, status: nextStatus }),
       });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
       if (!res.ok) throw new Error(data?.error || "Napaka pri spremembi statusa.");
       router.refresh();
     } catch (err) {
@@ -123,7 +143,7 @@ export default function DresiClient({ dresi }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dresId }),
       });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
       if (!res.ok) throw new Error(data?.error || "Napaka pri brisanju dresa.");
       router.refresh();
     } catch (err) {
@@ -133,18 +153,64 @@ export default function DresiClient({ dresi }: Props) {
     }
   }
 
+  function openSaleModal(dres: Dres) {
+    setError("");
+    setSaleDres(dres);
+    setSaleKolicina("1");
+    setSaleOpis(`Prodaja dresa - ${dres.ime}`);
+  }
+
+  async function handleSell() {
+    if (!saleDres) return;
+
+    const parsedKolicina = Math.floor(Number(saleKolicina));
+    const zaloga = Math.max(0, Number(saleDres.zaloga || 0));
+
+    if (!Number.isFinite(parsedKolicina) || parsedKolicina < 1) {
+      setError("Količina prodaje mora biti vsaj 1.");
+      return;
+    }
+
+    if (parsedKolicina > zaloga) {
+      setError(`Na zalogi je samo ${zaloga} kosov.`);
+      return;
+    }
+
+    setError("");
+    setBusyId(saleDres._id);
+
+    try {
+      const res = await fetch("/api/dresi", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dresId: saleDres._id,
+          status: "prodan",
+          kolicina: parsedKolicina,
+          opis: saleOpis,
+        }),
+      });
+      const data = await readJsonSafe(res);
+      if (!res.ok) throw new Error(data?.error || "Napaka pri prodaji dresa.");
+      setSaleDres(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Napaka pri prodaji dresa.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="app-shell min-h-screen">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div className="mb-8">
-          <div>
-            <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white">
-              <ArrowLeft className="w-4 h-4" />
-              Nazaj na dashboard
-            </Link>
-            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Zaloga dresov</p>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight text-white">Dresi</h1>
-          </div>
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white">
+            <ArrowLeft className="w-4 h-4" />
+            Nazaj na dashboard
+          </Link>
+          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Zaloga dresov</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight text-white">Dresi</h1>
         </div>
 
         <section className="grid grid-cols-2 gap-4 mb-8 max-w-md">
@@ -160,11 +226,11 @@ export default function DresiClient({ dresi }: Props) {
               </div>
               <div>
                 <h2 className="text-xl font-black text-white">Dodaj dres</h2>
-                <p className="text-sm text-slate-400">Ime, cena, slika in status.</p>
+                <p className="text-sm text-slate-400">Ime, cena, količina, slika in status.</p>
               </div>
             </div>
 
-            {error && <div className="mb-5 rounded-xl border border-red-300/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</div>}
+            {error && !saleDres && <div className="mb-5 rounded-xl border border-red-300/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</div>}
 
             <div className="space-y-4">
               <input value={ime} onChange={(e) => setIme(e.target.value)} className="dark-field w-full rounded-xl p-4" placeholder="Ime dresa" />
@@ -177,6 +243,16 @@ export default function DresiClient({ dresi }: Props) {
                 min="0"
                 className="dark-field w-full rounded-xl p-4"
                 placeholder="Prodajna cena (€)"
+              />
+
+              <input
+                value={kolicina}
+                onChange={(e) => setKolicina(e.target.value)}
+                type="number"
+                min="1"
+                step="1"
+                className="dark-field w-full rounded-xl p-4"
+                placeholder="Količina"
               />
 
               <select value={status} onChange={(e) => setStatus(e.target.value as DresStatus)} className="dark-field w-full rounded-xl p-4">
@@ -209,6 +285,7 @@ export default function DresiClient({ dresi }: Props) {
                   dres={dres}
                   busy={busyId === dres._id}
                   onStatusChange={handleStatusChange}
+                  onSell={openSaleModal}
                   onDelete={handleDelete}
                 />
               ))
@@ -216,6 +293,23 @@ export default function DresiClient({ dresi }: Props) {
           </div>
         </section>
       </main>
+
+      {saleDres && (
+        <SaleModal
+          dres={saleDres}
+          kolicina={saleKolicina}
+          setKolicina={setSaleKolicina}
+          opis={saleOpis}
+          setOpis={setSaleOpis}
+          busy={busyId === saleDres._id}
+          error={error}
+          onClose={() => {
+            setSaleDres(null);
+            setError("");
+          }}
+          onSell={handleSell}
+        />
+      )}
     </div>
   );
 }
@@ -234,11 +328,13 @@ function DresCard({
   dres,
   busy,
   onStatusChange,
+  onSell,
   onDelete,
 }: {
   dres: Dres;
   busy: boolean;
   onStatusChange: (id: string, status: DresStatus) => void;
+  onSell: (dres: Dres) => void;
   onDelete: (id: string) => void;
 }) {
   const normalizedStatus = dres.status || "na_zalogi";
@@ -255,7 +351,9 @@ function DresCard({
             <Shirt className="h-14 w-14" />
           </div>
         )}
-        <span className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ring-1 ${meta.className}`}>
+        <span
+          className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border bg-slate-950/90 px-3 py-1.5 text-xs font-black shadow-lg shadow-black/50 backdrop-blur-md ${meta.className}`}
+        >
           <Icon className="h-3.5 w-3.5" />
           {meta.label}
         </span>
@@ -266,6 +364,7 @@ function DresCard({
           <div>
             <h3 className="line-clamp-2 text-lg font-black text-white">{dres.ime}</h3>
             <p className="mt-2 text-2xl font-black text-emerald-300">{formatMoney(dres.cenaProdaje)} €</p>
+            <p className="mt-1 text-sm font-semibold text-slate-400">Količina: {Math.max(0, Number(dres.zaloga || 0))}</p>
           </div>
           <button
             onClick={() => onDelete(dres._id)}
@@ -289,7 +388,7 @@ function DresCard({
         </select>
 
         <button
-          onClick={() => onStatusChange(dres._id, "prodan")}
+          onClick={() => onSell(dres)}
           disabled={busy}
           className="primary-action mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold transition disabled:cursor-not-allowed disabled:opacity-70"
         >
@@ -298,5 +397,78 @@ function DresCard({
         </button>
       </div>
     </article>
+  );
+}
+
+function SaleModal({
+  dres,
+  kolicina,
+  setKolicina,
+  opis,
+  setOpis,
+  busy,
+  error,
+  onClose,
+  onSell,
+}: {
+  dres: Dres;
+  kolicina: string;
+  setKolicina: (value: string) => void;
+  opis: string;
+  setOpis: (value: string) => void;
+  busy: boolean;
+  error: string;
+  onClose: () => void;
+  onSell: () => void;
+}) {
+  const zaloga = Math.max(0, Number(dres.zaloga || 0));
+  const parsedKolicina = Math.max(0, Number(kolicina || 0));
+  const total = Number(dres.cenaProdaje || 0) * parsedKolicina;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+      <div className="glass-panel w-full max-w-md rounded-2xl p-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Prodaja dresa</p>
+            <h3 className="mt-2 text-2xl font-black text-white">{dres.ime}</h3>
+            <p className="mt-1 text-sm text-slate-400">Na zalogi: {zaloga}</p>
+          </div>
+          <button onClick={onClose} className="rounded-xl p-2 text-slate-400 transition hover:bg-white/10 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {error && <div className="mb-5 rounded-xl border border-red-300/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</div>}
+
+        <div className="space-y-4">
+          <input
+            value={kolicina}
+            onChange={(e) => setKolicina(e.target.value)}
+            type="number"
+            min="1"
+            max={zaloga}
+            step="1"
+            className="dark-field w-full rounded-xl p-4"
+            placeholder="Koliko jih je bilo prodanih?"
+          />
+
+          <input
+            value={opis}
+            onChange={(e) => setOpis(e.target.value)}
+            className="dark-field w-full rounded-xl p-4"
+            placeholder="Text za dashboard transakcijo"
+          />
+
+          <div className="rounded-xl bg-slate-950/40 p-4 text-sm text-slate-300 ring-1 ring-white/10">
+            Skupaj: <span className="font-black text-emerald-300">{formatMoney(total)} €</span>
+          </div>
+
+          <button onClick={onSell} disabled={busy} className="primary-action w-full rounded-xl py-4 font-bold transition disabled:opacity-60">
+            {busy ? "Shranjujem..." : "Potrdi prodajo"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
