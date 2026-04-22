@@ -1,86 +1,66 @@
-// app/page.tsx (domača stran – brez scrollanja)
 import Link from "next/link";
-import { TrendingUp, Wallet, Target, BarChart3 } from "lucide-react";
+import { ArrowRight, BarChart3, Target, TrendingUp, Wallet } from "lucide-react";
+
+const features = [
+  {
+    icon: Wallet,
+    title: "Nadzor financ",
+    text: "Pregled vseh prihodkov in odhodkov.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Dobiček",
+    text: "Jasno vidiš zaslužek in izgubo.",
+  },
+  {
+    icon: BarChart3,
+    title: "Statistika",
+    text: "Grafični prikaz poslovanja.",
+  },
+  {
+    icon: Target,
+    title: "Letni cilj",
+    text: "Spremljanje napredka ciljev.",
+  },
+];
 
 export default function HomePage() {
   return (
-    <div className="h-screen overflow-hidden bg-gray-100 text-gray-900 flex items-center justify-center px-6">
+    <div className="app-shell min-h-screen overflow-hidden px-6 py-10 flex items-center">
+      <div className="max-w-6xl w-full mx-auto">
+        <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 items-center">
+          <section className="space-y-8">
+            <div className="space-y-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">Finance za prodajo dresov</p>
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-white">Finance Dresi</h1>
+              <p className="text-lg md:text-xl text-slate-300 leading-relaxed max-w-2xl">
+                Popoln nadzor nad prihodki, odhodki, dobičkom in cilji na enem mirnem, preglednem dashboardu.
+              </p>
+            </div>
 
-      <div className="max-w-6xl w-full text-center space-y-14">
+            <Link
+              href="/login"
+              className="primary-action inline-flex items-center gap-3 px-8 py-4 font-bold text-lg rounded-2xl transition"
+            >
+              Prijava
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </section>
 
-        {/* NASLOV */}
-        <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-black text-gray-800">
-            Finance – dresi
-          </h1>
-
-          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
-            Popoln nadzor nad prodajo nogometnih dresov.
-            <br />
-            Prihodki, odhodki, dobiček in cilji – vse na enem mestu.
-          </p>
+          <section className="glass-panel rounded-3xl p-5 sm:p-6">
+            <div className="grid grid-cols-2 gap-4">
+              {features.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left">
+                  <div className="w-11 h-11 flex items-center justify-center rounded-xl bg-teal-300/10 text-teal-300 ring-1 ring-teal-300/20">
+                    <Icon size={22} />
+                  </div>
+                  <h3 className="mt-4 text-lg font-bold text-white">{title}</h3>
+                  <p className="mt-2 text-slate-400 text-sm">{text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
-
-        {/* PREDSTAVITVENI OKVIRČKI */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-
-          <div className="bg-white rounded-2xl shadow-sm p-6 text-left space-y-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-900 text-white">
-              <Wallet size={22} />
-            </div>
-            <h3 className="text-lg font-bold">Nadzor financ</h3>
-            <p className="text-gray-600 text-sm">
-              Pregled vseh prihodkov in odhodkov.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm p-6 text-left space-y-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-900 text-white">
-              <TrendingUp size={22} />
-            </div>
-            <h3 className="text-lg font-bold">Dobiček</h3>
-            <p className="text-gray-600 text-sm">
-              Jasno vidiš zaslužek in izgubo.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm p-6 text-left space-y-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-900 text-white">
-              <BarChart3 size={22} />
-            </div>
-            <h3 className="text-lg font-bold">Statistika</h3>
-            <p className="text-gray-600 text-sm">
-              Grafični prikaz poslovanja.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm p-6 text-left space-y-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-900 text-white">
-              <Target size={22} />
-            </div>
-            <h3 className="text-lg font-bold">Letni cilj</h3>
-            <p className="text-gray-600 text-sm">
-              Spremljanje napredka ciljev.
-            </p>
-          </div>
-
-        </div>
-
-        {/* CTA */}
-        <div className="space-y-4">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-3 px-10 py-3 bg-gray-900 hover:bg-black text-white font-bold text-lg rounded-xl shadow-md transition"
-          >
-            Prijava
-            <span className="text-xl">→</span>
-          </Link>
-
-          <p className="text-sm text-gray-500">
-            Enostavno. Hitro. Pregledno.
-          </p>
-        </div>
-
       </div>
     </div>
   );

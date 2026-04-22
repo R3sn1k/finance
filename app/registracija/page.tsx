@@ -1,4 +1,3 @@
-// app/register/page.tsx → KONČNO, GUMB DELUJE 100 %!
 "use client";
 
 import { useState } from "react";
@@ -39,36 +38,34 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-12 max-w-md w-full">
-
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-black tracking-tight text-gray-800 mb-4">
-            Finance Dresi
-          </h1>
-          <p className="text-xl text-gray-600">Ustvari nov račun</p>
+    <div className="app-shell flex items-center justify-center p-6">
+      <div className="glass-panel rounded-3xl p-8 sm:p-12 max-w-md w-full">
+        <div className="text-center mb-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-300 mb-3">Nov račun</p>
+          <h1 className="text-4xl font-black tracking-tight text-white mb-3">Finance Dresi</h1>
+          <p className="text-lg text-slate-400">Ustvari nov račun</p>
         </div>
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg p-4 mb-8 text-center font-medium">
+          <div className="bg-emerald-400/10 border border-emerald-300/20 text-emerald-200 rounded-xl p-4 mb-8 text-center font-medium">
             Uspešno registriran! Preusmerjam na prijavo...
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-8 text-center font-medium">
+          <div className="bg-red-400/10 border border-red-300/20 text-red-200 rounded-xl p-4 mb-8 text-center font-medium">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-6">
+        <form onSubmit={handleRegister} className="space-y-5">
           <input
             type="text"
             placeholder="Uporabniško ime"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            className="w-full px-6 py-4 rounded-lg border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
+            className="dark-field w-full px-6 py-4 rounded-xl"
           />
 
           <input
@@ -77,7 +74,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-6 py-4 rounded-lg border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
+            className="dark-field w-full px-6 py-4 rounded-xl"
           />
 
           <input
@@ -86,7 +83,7 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-6 py-4 rounded-lg border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
+            className="dark-field w-full px-6 py-4 rounded-xl"
           />
 
           <input
@@ -95,25 +92,20 @@ export default function RegisterPage() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className="w-full px-6 py-4 rounded-lg border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
+            className="dark-field w-full px-6 py-4 rounded-xl"
           />
 
-          {/* GUMB – type="submit" JE KLJUČ! */}
-          <button
-            type="submit"
-            className="w-full py-5 bg-gray-900 hover:bg-black text-white font-bold text-xl rounded-lg shadow-lg transition transform hover:scale-105"
-          >
+          <button type="submit" className="primary-action w-full py-5 font-bold text-xl rounded-xl transition">
             Registriraj se
           </button>
         </form>
 
-        <p className="text-center mt-10 text-gray-600">
+        <p className="text-center mt-10 text-slate-400">
           Že imaš račun?{" "}
-          <a href="/login" className="font-bold text-gray-900 hover:underline">
+          <a href="/login" className="font-bold text-teal-300 hover:text-teal-200">
             Prijava
           </a>
         </p>
-
       </div>
     </div>
   );

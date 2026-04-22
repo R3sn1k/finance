@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
@@ -172,8 +173,8 @@ export default function DashboardClient({
       setOpis("");
       setOpenTransakcija(false);
       router.refresh();
-    } catch (e: any) {
-      alert(e?.message || "Napaka pri dodajanju transakcije");
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Napaka pri dodajanju transakcije");
     }
   }
 
@@ -184,8 +185,8 @@ export default function DashboardClient({
       await apiPostJson("/api/izbrisi-transakcijo", { transakcijaId: id });
       setTransakcije((prev) => prev.filter((t) => t._id !== id));
       router.refresh();
-    } catch (e: any) {
-      alert(e?.message || "Napaka pri brisanju transakcije.");
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Napaka pri brisanju transakcije.");
     }
   }
 
@@ -221,8 +222,8 @@ export default function DashboardClient({
       setProfileImage(data.profileImage || profileImage);
       setOpenProfileEdit(false);
       router.refresh();
-    } catch (e: any) {
-      alert(e?.message || "Napaka pri shranjevanju profila");
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Napaka pri shranjevanju profila");
     }
   }
 
@@ -238,7 +239,7 @@ export default function DashboardClient({
 
   // ===== Render =====
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
+    <div className="app-shell flex flex-col">
       {/* Top navigation */}
       <DashboardHeader
         username={username}
@@ -249,8 +250,19 @@ export default function DashboardClient({
       />
 
       {/* Main content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center sm:text-left">Živjo, {username}!</h2>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="text-center sm:text-left">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Pregled poslovanja</p>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight text-white">Živjo, {username}!</h2>
+          </div>
+          <Link
+            href="/dashboard/dresi"
+            className="primary-action inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-bold transition"
+          >
+            Upravljaj drese
+          </Link>
+        </div>
 
         {/* Goal summary */}
         <GoalCard

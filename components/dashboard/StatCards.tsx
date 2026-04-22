@@ -20,42 +20,38 @@ export default function StatCards({
 }: Props) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-      {/* Profit */}
       <button
         onClick={() => onOpenGraph("dobiček")}
-        className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
+        className="glass-panel rounded-2xl p-5 text-left transition hover:-translate-y-0.5 hover:border-teal-300/40"
       >
-        <p className="text-xs sm:text-sm text-gray-500 mb-1">Dobiček</p>
-        <p className={`text-2xl sm:text-3xl font-bold ${dobiček >= 0 ? "text-green-600" : "text-red-600"}`}>
+        <p className="text-xs sm:text-sm text-slate-400 mb-1">Dobiček</p>
+        <p className={`text-2xl sm:text-3xl font-bold ${dobiček >= 0 ? "text-emerald-300" : "text-red-300"}`}>
           {formatMoney(dobiček)} €
         </p>
       </button>
 
-      {/* Income */}
       <button
         onClick={() => onOpenGraph("prihodki")}
-        className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
+        className="glass-panel rounded-2xl p-5 text-left transition hover:-translate-y-0.5 hover:border-teal-300/40"
       >
-        <p className="text-xs sm:text-sm text-gray-500 mb-1">Prihodki</p>
-        <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatMoney(prihodki)} €</p>
+        <p className="text-xs sm:text-sm text-slate-400 mb-1">Prihodki</p>
+        <p className="text-2xl sm:text-3xl font-bold text-emerald-300">{formatMoney(prihodki)} €</p>
       </button>
 
-      {/* Expenses */}
       <button
         onClick={() => onOpenGraph("odhodki")}
-        className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
+        className="glass-panel rounded-2xl p-5 text-left transition hover:-translate-y-0.5 hover:border-orange-300/40"
       >
-        <p className="text-xs sm:text-sm text-gray-500 mb-1">Odhodki</p>
-        <p className="text-2xl sm:text-3xl font-bold text-orange-500">{formatMoney(odhodki)} €</p>
+        <p className="text-xs sm:text-sm text-slate-400 mb-1">Odhodki</p>
+        <p className="text-2xl sm:text-3xl font-bold text-orange-300">{formatMoney(odhodki)} €</p>
       </button>
 
-      {/* Sales count */}
       <button
         onClick={() => onOpenGraph("prodaje")}
-        className="bg-white rounded-xl shadow p-5 hover:shadow-xl transition text-left"
+        className="glass-panel rounded-2xl p-5 text-left transition hover:-translate-y-0.5 hover:border-blue-300/40"
       >
-        <p className="text-xs sm:text-sm text-gray-500 mb-1">Število prodaj</p>
-        <p className="text-2xl sm:text-3xl font-bold text-indigo-600">{steviloProdaj}</p>
+        <p className="text-xs sm:text-sm text-slate-400 mb-1">Število prodaj</p>
+        <p className="text-2xl sm:text-3xl font-bold text-blue-300">{steviloProdaj}</p>
       </button>
     </div>
   );
